@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    // Keep in sync with SUPER_ADMIN_EMAIL in src/lib/constants.js. The one
+    // account allowed to self-assign "admin" — no manual console step needed.
+    function isSuperAdminEmail() {
+      return isSignedIn() && request.auth.token.email == 'anddhensoftware@gmail.com';
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'admin';
+    }
+    function isSeller() {
+      return isSignedIn() && myRole() == 'seller';
+    }
+    // owner of the given store id
+    function ownsStore(storeId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/stores/$(storeId)).data.ownerUid == request.auth.uid;
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      // A self-created profile MUST be a customer — UNLESS it's the hardcoded
+      // super-admin email, which may self-assign admin on first sign-in.
+      allow create: if request.auth.uid == uid
+        && (request.resource.data.role == 'customer'
+            || (request.resource.data.role == 'admin' && isSuperAdminEmail()));
+      // Self can edit own profile but NOT change their role — except the
+      // super-admin email, which may (re-)promote itself to admin.
+      allow update: if isAdmin()
+        || (request.auth.uid == uid
+            && (request.resource.data.role == resource.data.role
+                || (request.resource.data.role == 'admin' && isSuperAdminEmail())));
+      allow delete: if isAdmin();
+
+      // addresses + cart are private to the owner
+      match /addresses/{addressId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /cart/{storeId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+    }
+
+    // ---------- platform config ----------
+    match /platformConfig/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- categories ----------
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- stores ----------
+    match /stores/{storeId} {
+      allow read: if true; // storefronts are public
+      // Admin can create stores directly (e.g. seeding). Otherwise anyone signed
+      // in can apply, but must start as pending and own the store.
+      allow create: if isAdmin()
+        || (isSignedIn()
+            && request.resource.data.ownerUid == request.auth.uid
+            && request.resource.data.approvalStatus == 'pending');
+      // Admin controls approval; owner may edit their store but not its approval status.
+      allow update: if isAdmin()
+        || (resource.data.ownerUid == request.auth.uid
+            && request.resource.data.approvalStatus == resource.data.approvalStatus);
+      allow delete: if isAdmin();
+    }
+
+    // ---------- products (listings) ----------
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isAdmin()
+        || (isSeller() && request.resource.data.ownerUid == request.auth.uid);
+      allow update, delete: if isAdmin()
+        || (isSeller() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    // ---------- orders ----------
+    match /orders/{orderId} {
+      // Customer creates their own order.
+      allow create: if isSignedIn()
+        && request.resource.data.customerUid == request.auth.uid;
+      // Readable by the customer, the store owner, or an admin.
+      allow read: if isSignedIn() && (
+        resource.data.customerUid == request.auth.uid
+        || ownsStore(resource.data.storeId)
+        || isAdmin()
+      );
+      // Customer can update (e.g. cancel) own order; seller owner can progress it; admin anything.
+      allow update: if isSignedIn() && (
+        resource.data.customerUid == request.auth.uid
+        || ownsStore(resource.data.storeId)
+        || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+  }
+}

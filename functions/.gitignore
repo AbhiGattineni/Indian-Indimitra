@@ -1,0 +1,5 @@
+node_modules/
+# .env holds non-secret EmailJS IDs, but keep it out of git anyway.
+# The private key lives in Secret Manager, never in a file.
+.env
+.env.local
