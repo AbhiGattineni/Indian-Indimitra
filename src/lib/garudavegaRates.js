@@ -16,12 +16,19 @@ export const SERVICE_TIERS = [
 // Total charges (INR, GST included) by weight (kg) and tier.
 export const GARUDAVEGA_RATE_CARD = [
   { weightKg: 1, priority: 3486, saver: 3093, economy: 2651 },
+  { weightKg: 2, priority: 4313, saver: 4092, economy: 3422 },
   { weightKg: 3, priority: 5151, saver: 5163, economy: 4580 },
+  { weightKg: 4, priority: 6135, saver: 6318, economy: 5312 },
   { weightKg: 5, priority: 7101, saver: 7459, economy: 6046 },
+  { weightKg: 6, priority: 7822, saver: 8452, economy: 7063 },
   { weightKg: 7, priority: 9126, saver: 9818, economy: 7748 },
+  { weightKg: 8, priority: 9315, saver: 10355, economy: 8386 },
   { weightKg: 9, priority: 10479, saver: 11617, economy: 9030 },
   { weightKg: 10, priority: 10801, saver: 12224, economy: 9749 },
+  { weightKg: 11, priority: 11881, saver: 13420, economy: 10510 },
   { weightKg: 12, priority: 12961, saver: 14617, economy: 11273 },
+  { weightKg: 13, priority: 14041, saver: 15813, economy: 12037 },
+  { weightKg: 14, priority: 15121, saver: 17010, economy: 12801 },
   { weightKg: 15, priority: 16124, saver: 18206, economy: 13563 },
 ];
 
@@ -34,19 +41,4 @@ export function formatUSD(inrAmount, usdInrRate) {
     currency: 'USD',
     maximumFractionDigits: 2,
   }).format(Number(inrAmount || 0) / rate);
-}
-
-// Extra cost (and per-kg rate) of stepping up to this row from the previous
-// published weight, per tier — the "is 10kg basically the same as 9kg?" view.
-export function withDeltas(card = GARUDAVEGA_RATE_CARD) {
-  return card.map((row, i) => {
-    if (i === 0) return { ...row, deltaKg: null };
-    const prev = card[i - 1];
-    const deltaKg = row.weightKg - prev.weightKg;
-    const delta = {};
-    SERVICE_TIERS.forEach(({ key }) => {
-      delta[key] = { extra: row[key] - prev[key], perKg: (row[key] - prev[key]) / deltaKg };
-    });
-    return { ...row, deltaKg, delta };
-  });
 }
