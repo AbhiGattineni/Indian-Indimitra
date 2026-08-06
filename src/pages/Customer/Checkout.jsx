@@ -5,7 +5,9 @@ import {
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { getStore, getPlatformConfig, createOrder, clearCart as clearCartDoc } from '../../firebase/db';
+import {
+  getStore, getPlatformConfig, getShippingRates, createOrder, clearCart as clearCartDoc,
+} from '../../firebase/db';
 import {
   cartSubtotal, cartWeightKg, lineTotal, shippingFee, taxAmount, commissionAmount, formatINR,
 } from '../../lib/calculations';
@@ -20,6 +22,7 @@ export default function Checkout() {
   const { user } = useAuthStore();
   const [store, setStore] = useState(null);
   const [config, setConfig] = useState(null);
+  const [shippingRates, setShippingRates] = useState(null);
   const [addr, setAddr] = useState({ line: '', city: '', pincode: '', phone: '' });
   const [country, setCountry] = useState('US');
   const [placing, setPlacing] = useState(false);
@@ -33,6 +36,7 @@ export default function Checkout() {
     (async () => {
       if (storeId) setStore(await getStore(storeId));
       setConfig(await getPlatformConfig());
+      setShippingRates(await getShippingRates());
     })();
   }, [storeId]);
 
@@ -46,7 +50,7 @@ export default function Checkout() {
   const subtotal = +cartSubtotal(items).toFixed(2);
   const intl = !isDomestic(country);
   const shipping = intl
-    ? internationalShipping(country, totalKg)
+    ? internationalShipping(country, totalKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(subtotal, config);
@@ -157,9 +161,15 @@ export default function Checkout() {
             value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
           />
           {intl && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-              Billable weight {billableWeight(totalKg)} kg (of {totalKg.toFixed(2)} kg) — shipping charged at cost.
-            </Typography>
+            <>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                Billable weight {billableWeight(totalKg)} kg (of {totalKg.toFixed(2)} kg) — shipping charged at cost.
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontStyle: 'italic' }}>
+                {shippingRates?.disclaimer}
+                {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
+              </Typography>
+            </>
           )}
           <Row label="Tax" value={formatINR(totals.tax)} />
           <Divider sx={{ my: 1 }} />

@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { ROLES, STORE_STATUS, PRODUCT_STATUS, ORDER_STATUS, PAYMENT_METHOD } from '../lib/constants';
+import { defaultShippingRates } from '../lib/shipping';
 
 /* ---------------- Users ---------------- */
 export async function getUserProfile(uid) {
@@ -41,6 +42,20 @@ export async function getPlatformConfig() {
 
 export async function setPlatformConfig(data) {
   await setDoc(doc(db, 'platformConfig', 'global'), data, { merge: true });
+}
+
+/* ---------------- Shipping rates (international, per-country weight bands) --- */
+export async function getShippingRates() {
+  const snap = await getDoc(doc(db, 'platformConfig', 'shippingRates'));
+  return snap.exists() ? { ...defaultShippingRates(), ...snap.data() } : defaultShippingRates();
+}
+
+export async function setShippingRates(data, updatedByEmail) {
+  await setDoc(doc(db, 'platformConfig', 'shippingRates'), {
+    ...data,
+    updatedAt: serverTimestamp(),
+    updatedBy: updatedByEmail || '',
+  }, { merge: true });
 }
 
 /* ---------------- Categories ---------------- */
