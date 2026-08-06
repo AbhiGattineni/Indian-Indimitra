@@ -56,6 +56,7 @@ export function defaultShippingRates() {
     minKg: MIN_KG,
     disclaimer: DEFAULT_DISCLAIMER,
     ratesAsOf: null,
+    usdInrRate: 95,
     countries,
   };
 }

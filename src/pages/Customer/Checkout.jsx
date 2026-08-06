@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
-  Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem,
+  Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem, Link,
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -169,6 +169,10 @@ export default function Checkout() {
                 {shippingRates?.disclaimer}
                 {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
               </Typography>
+              <Link component={RouterLink} to="/shipping-rates" target="_blank" rel="noopener noreferrer"
+                variant="caption" sx={{ display: 'block', mb: 0.5 }}>
+                View full rate chart by weight (₹ / $) →
+              </Link>
             </>
           )}
           <Row label="Tax" value={formatINR(totals.tax)} />

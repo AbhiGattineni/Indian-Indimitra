@@ -14,6 +14,7 @@ import Browse from './pages/Customer/Browse';
 import ProductPage from './pages/Customer/ProductPage';
 import Cart from './pages/Customer/Cart';
 import Checkout from './pages/Customer/Checkout';
+import ShippingRateChart from './pages/Customer/ShippingRateChart';
 import MyOrders from './pages/Customer/MyOrders';
 import BecomeSeller from './pages/Customer/BecomeSeller';
 // Seller
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/not-authorized" element={<NotAuthorized />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/shipping-rates" element={<ShippingRateChart />} />
 
         {/* Customer (any signed-in user) */}
         <Route
