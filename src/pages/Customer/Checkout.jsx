@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem,
+  Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem, Link,
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import ShippingRateDialog from '../../components/ShippingRateDialog';
+import { DEFAULT_USD_INR_RATE } from '../../lib/garudavegaRates';
 import {
   getStore, getPlatformConfig, getShippingRates, createOrder, clearCart as clearCartDoc,
 } from '../../firebase/db';
@@ -28,6 +30,7 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState('');
+  const [rateChartOpen, setRateChartOpen] = useState(false);
 
   const phoneDigits = addr.phone.replace(/\D/g, '');
   const phoneValid = phoneDigits.length >= 10;
@@ -169,6 +172,10 @@ export default function Checkout() {
                 {shippingRates?.disclaimer}
                 {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
               </Typography>
+              <Link component="button" type="button" onClick={() => setRateChartOpen(true)}
+                variant="caption" sx={{ display: 'block', mb: 0.5 }}>
+                View full rate chart by weight (₹ / $) →
+              </Link>
             </>
           )}
           <Row label="Tax" value={formatINR(totals.tax)} />
@@ -186,6 +193,11 @@ export default function Checkout() {
           </Button>
         </Paper>
       </Box>
+      <ShippingRateDialog
+        open={rateChartOpen}
+        onClose={() => setRateChartOpen(false)}
+        usdInrRate={shippingRates?.usdInrRate || DEFAULT_USD_INR_RATE}
+      />
     </Box>
   );
 }

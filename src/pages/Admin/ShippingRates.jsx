@@ -61,6 +61,7 @@ export default function ShippingRates() {
       minKg: Number(rates.minKg) || 0.5,
       disclaimer: rates.disclaimer || '',
       ratesAsOf: rates.ratesAsOf || '',
+      usdInrRate: Number(rates.usdInrRate) || 95,
       countries: cleanedCountries,
     }, user?.email);
     setSaved(true);
@@ -85,6 +86,13 @@ export default function ShippingRates() {
             value={rates.buffer}
             onChange={(e) => { setRates({ ...rates, buffer: e.target.value }); setSaved(false); }}
             helperText="Added on top of the banded cost below, for every international shipment."
+          />
+          <TextField
+            label="USD/INR rate (₹ per $1, approximate)"
+            type="number"
+            value={rates.usdInrRate}
+            onChange={(e) => { setRates({ ...rates, usdInrRate: e.target.value }); setSaved(false); }}
+            helperText="Used to show shipping rate chart prices in USD alongside INR. Update periodically."
           />
           <TextField
             label="Rates as of (e.g. 2026-08-06)"
