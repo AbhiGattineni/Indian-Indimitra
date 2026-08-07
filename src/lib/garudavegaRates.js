@@ -11,10 +11,11 @@ export const SERVICE_TIERS = [
   { key: 'priority', label: 'Express Priority', tat: '3–5 business days' },
   { key: 'saver', label: 'Express Saver', tat: '3–7 business days' },
   { key: 'economy', label: 'Express Economy', tat: '6–8 business days' },
+  { key: 'regular', label: 'Regular', tat: '6–10 business days' },
 ];
 
-// Total charges (INR, GST included) by weight (kg) and tier.
-export const GARUDAVEGA_RATE_CARD = [
+// Total charges (INR, GST included) by weight (kg) for priority/saver/economy.
+const RATE_CARD_ROWS = [
   { weightKg: 1, priority: 3486, saver: 3093, economy: 2651 },
   { weightKg: 2, priority: 4313, saver: 4092, economy: 3422 },
   { weightKg: 3, priority: 5151, saver: 5163, economy: 4580 },
@@ -31,6 +32,24 @@ export const GARUDAVEGA_RATE_CARD = [
   { weightKg: 14, priority: 15121, saver: 17010, economy: 12801 },
   { weightKg: 15, priority: 16124, saver: 18206, economy: 13563 },
 ];
+
+// "Regular" tier: published flat totals for 1-10kg, then a straight
+// per-kg rate for 11-20kg and a lower per-kg rate for 21kg+.
+const REGULAR_DISCRETE_TOTALS = {
+  1: 2500, 2: 3100, 3: 3900, 4: 4800, 5: 5650,
+  6: 6250, 7: 6850, 8: 7400, 9: 8000, 10: 8500,
+};
+export function regularRate(weightKg) {
+  if (REGULAR_DISCRETE_TOTALS[weightKg] != null) return REGULAR_DISCRETE_TOTALS[weightKg];
+  const perKg = weightKg <= 20 ? 850 : 800;
+  return Math.round(weightKg * perKg);
+}
+
+// Total charges (INR) by weight (kg) and tier.
+export const GARUDAVEGA_RATE_CARD = RATE_CARD_ROWS.map((row) => ({
+  ...row,
+  regular: regularRate(row.weightKg),
+}));
 
 export const DEFAULT_USD_INR_RATE = 95;
 
