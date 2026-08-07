@@ -7,11 +7,13 @@ import { listAllOrders } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import OrderStatusChip from '../../components/OrderStatusChip';
+import AdminOrderDetailDialog from '../../components/AdminOrderDetailDialog';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     (async () => { setOrders(await listAllOrders()); setLoading(false); })();
@@ -37,6 +39,7 @@ export default function AdminOrders() {
         <TableHead>
           <TableRow>
             <TableCell>Order</TableCell>
+            <TableCell>Customer</TableCell>
             <TableCell>Store</TableCell>
             <TableCell align="right">Total</TableCell>
             <TableCell align="right">Commission</TableCell>
@@ -46,8 +49,9 @@ export default function AdminOrders() {
         </TableHead>
         <TableBody>
           {shown.map((o) => (
-            <TableRow key={o.id}>
+            <TableRow key={o.id} hover onClick={() => setSelected(o)} sx={{ cursor: 'pointer' }}>
               <TableCell>#{o.id.slice(0, 6)}</TableCell>
+              <TableCell>{o.customerEmail}</TableCell>
               <TableCell>{o.storeName}</TableCell>
               <TableCell align="right">{formatINR(o.total)}</TableCell>
               <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
@@ -57,6 +61,7 @@ export default function AdminOrders() {
           ))}
         </TableBody>
       </Table>
+      <AdminOrderDetailDialog order={selected} onClose={() => setSelected(null)} />
     </Box>
   );
 }
