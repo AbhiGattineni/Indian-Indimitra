@@ -111,6 +111,10 @@ export async function updateProduct(id, data) {
 export async function deleteProduct(id) {
   return deleteDoc(doc(db, 'products', id));
 }
+export async function listAllProducts() {
+  const snap = await getDocs(collection(db, 'products'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 export async function listActiveProducts() {
   const snap = await getDocs(
     query(collection(db, 'products'), where('status', '==', PRODUCT_STATUS.ACTIVE))
