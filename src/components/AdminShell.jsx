@@ -1,12 +1,9 @@
 // Indimitra-style admin shell: persistent left sidebar with icon nav and a
-// coral-gradient active state on desktop; a horizontal scrollable tab strip
-// on narrow screens instead of squeezing a drawer into a phone width.
+// coral-gradient active state, on every screen size.
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar,
-  useMediaQuery, Tabs, Tab,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -34,42 +31,14 @@ function isActive(pathname, item) {
 }
 
 export default function AdminShell() {
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeIndex = Math.max(
-    0,
-    NAV_ITEMS.findIndex((item) => isActive(location.pathname, item))
-  );
-
-  if (!isDesktop) {
-    return (
-      <Box>
-        <Tabs
-          value={activeIndex}
-          onChange={(_, i) => navigate(NAV_ITEMS[i].to)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            mb: 2,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 44 },
-          }}
-        >
-          {NAV_ITEMS.map((item) => (
-            <Tab key={item.to} icon={<item.icon fontSize="small" />} iconPosition="start" label={item.label} />
-          ))}
-        </Tabs>
-        <Outlet />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ display: 'flex', mx: -3, minHeight: 'calc(100vh - 64px)' }}>
+    <Box sx={{
+      display: 'flex', mx: { xs: -2, sm: -3 },
+      minHeight: { xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)' },
+    }}>
       <Drawer
         variant="permanent"
         sx={{
@@ -78,8 +47,8 @@ export default function AdminShell() {
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
             position: 'sticky',
-            top: 64,
-            height: 'calc(100vh - 64px)',
+            top: { xs: 56, sm: 64 },
+            height: { xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)' },
             border: 'none',
             borderRight: '1px solid',
             borderColor: 'divider',
@@ -118,7 +87,7 @@ export default function AdminShell() {
         </List>
       </Drawer>
 
-      <Box sx={{ flex: 1, minWidth: 0, px: 3, py: 3 }}>
+      <Box sx={{ flex: 1, minWidth: 0, px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
         <Outlet />
       </Box>
     </Box>
