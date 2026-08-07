@@ -28,6 +28,7 @@ import Categories from './pages/Admin/Categories';
 import Users from './pages/Admin/Users';
 import PlatformConfig from './pages/Admin/PlatformConfig';
 import ShippingRates from './pages/Admin/ShippingRates';
+import Catalog from './pages/Admin/Catalog';
 
 export default function App() {
   const initAuthListener = useAuthStore((s) => s.initAuthListener);
@@ -112,6 +113,7 @@ export default function App() {
           <Route path="approvals" element={<SellerApprovals />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="catalog" element={<Catalog />} />
           <Route path="users" element={<Users />} />
           <Route path="config" element={<PlatformConfig />} />
           <Route path="shipping-rates" element={<ShippingRates />} />

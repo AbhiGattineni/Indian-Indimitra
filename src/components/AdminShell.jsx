@@ -14,6 +14,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 
 const DRAWER_WIDTH = 240;
 
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'Seller Approvals', to: '/admin/approvals', icon: HowToRegIcon },
   { label: 'All Orders', to: '/admin/orders', icon: ReceiptLongIcon },
   { label: 'Categories', to: '/admin/categories', icon: CategoryIcon },
+  { label: 'Stores & Products', to: '/admin/catalog', icon: Inventory2Icon },
   { label: 'Users & Roles', to: '/admin/users', icon: PeopleIcon },
   { label: 'Platform Config', to: '/admin/config', icon: SettingsIcon },
   { label: 'Shipping Rates', to: '/admin/shipping-rates', icon: LocalShippingIcon },
