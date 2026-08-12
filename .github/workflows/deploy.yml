@@ -57,3 +57,12 @@ jobs:
         run: npx firebase-tools deploy --only hosting,firestore:rules --project indimitra-95a12 --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+
+      - name: Verify what the live site is actually serving
+        run: |
+          echo "--- Expected (this build's dist/index.html) ---"
+          cat dist/index.html
+          echo ""
+          echo "--- Live site (fetched fresh, cache-busted) ---"
+          curl -sS "https://indimitra-95a12.web.app/?cachebust=$(date +%s)" \
+            -H "Cache-Control: no-cache" -H "Pragma: no-cache"
