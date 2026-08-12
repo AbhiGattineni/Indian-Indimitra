@@ -4,9 +4,11 @@ import {
   Table, TableHead, TableBody, TableRow, TableCell, IconButton, Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
 import { getUserProfile } from '../firebase/db';
 import { formatINR, formatWeight, cartWeightKg } from '../lib/calculations';
 import { paymentLabel } from '../lib/constants';
+import { printInvoice } from '../lib/invoice';
 import OrderStatusChip from './OrderStatusChip';
 
 function formatTimestamp(ts) {
@@ -137,6 +139,9 @@ export default function AdminOrderDetailDialog({ order, onClose }) {
         )}
       </DialogContent>
       <DialogActions>
+        <Button startIcon={<DownloadIcon />} onClick={() => printInvoice(order, customer)}>
+          Download invoice
+        </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
