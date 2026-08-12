@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import {
   Dialog, DialogContent, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
-  ToggleButton, ToggleButtonGroup,
+  ToggleButton, ToggleButtonGroup, TextField,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -12,6 +12,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useCartStore } from '../store/useCartStore';
 import { formatINR } from '../lib/calculations';
+import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
 
 const WEIGHT_OPTIONS = [
@@ -24,10 +25,11 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const addItem = useCartStore((s) => s.addItem);
   const [qty, setQty] = useState(1);
   const [grams, setGrams] = useState(1000);
+  const [instructions, setInstructions] = useState('');
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
-    if (open) { setQty(1); setGrams(1000); }
+    if (open) { setQty(1); setGrams(1000); setInstructions(''); }
   }, [open, product?.id]);
 
   if (!product) return null;
@@ -37,7 +39,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const lineTotal = unitPrice * qty;
 
   const handleAdd = () => {
-    addItem(storeId, storeName, product, grams, qty);
+    addItem(storeId, storeName, product, grams, qty, instructions.trim());
     setToast(true);
     onClose();
   };
@@ -127,11 +129,14 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                   onChange={(_, v) => v && setGrams(v)}
                   disabled={outOfStock}
                 >
-                  {WEIGHT_OPTIONS.map((w) => (
-                    <ToggleButton key={w.g} value={w.g} sx={{ px: 1.75, fontWeight: 600, textTransform: 'none' }}>
-                      {w.label}
-                    </ToggleButton>
-                  ))}
+                  {WEIGHT_OPTIONS.map((w) => {
+                    const pieces = piecesForGrams(product.name, w.g);
+                    return (
+                      <ToggleButton key={w.g} value={w.g} sx={{ px: 1.75, fontWeight: 600, textTransform: 'none' }}>
+                        {w.label}{pieces ? ` (~${pieces} pcs)` : ''}
+                      </ToggleButton>
+                    );
+                  })}
                 </ToggleButtonGroup>
               </Box>
 
@@ -158,6 +163,19 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                   </IconButton>
                 </Box>
               </Box>
+
+              <TextField
+                label="Special instructions (optional)"
+                placeholder="e.g. less sweet, extra crispy…"
+                multiline
+                minRows={2}
+                size="small"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                disabled={outOfStock}
+                fullWidth
+                sx={{ bgcolor: 'background.paper' }}
+              />
 
               <Divider sx={{ borderStyle: 'dashed' }} />
 
