@@ -44,7 +44,14 @@ export default function Cart() {
           <TableBody>
             {items.map((it) => (
               <TableRow key={it.lineId}>
-                <TableCell>{it.name}</TableCell>
+                <TableCell>
+                  {it.name}
+                  {it.instructions && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Note: {it.instructions}
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell>{formatWeight(it.grams)}</TableCell>
                 <TableCell align="right">
                   {formatINR(it.price * ((Number(it.grams) || 1000) / 1000))}

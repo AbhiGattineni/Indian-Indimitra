@@ -90,7 +90,14 @@ export default function AdminOrderDetailDialog({ order, onClose }) {
           <TableBody>
             {(order.items || []).map((it, i) => (
               <TableRow key={it.productId || i}>
-                <TableCell>{it.name}</TableCell>
+                <TableCell>
+                  {it.name}
+                  {it.instructions && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Note: {it.instructions}
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell>{formatWeight(it.grams)}</TableCell>
                 <TableCell align="right">{it.qty}</TableCell>
                 <TableCell align="right">{formatINR(it.price)}</TableCell>
