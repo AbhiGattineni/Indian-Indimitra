@@ -6,14 +6,18 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
-import { formatINR, formatWeight, cartWeightKg } from '../../lib/calculations';
+import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
+import { orderWasEdited } from '../../lib/orderDiff';
 import OrderStatusChip from '../../components/OrderStatusChip';
+import OrderItemsDiff from '../../components/OrderItemsDiff';
+import EditOrderDialog from '../../components/EditOrderDialog';
 
 export default function MyOrders() {
   const { user } = useAuthStore();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -50,23 +54,14 @@ export default function MyOrders() {
                 {cartWeightKg(o.items).toFixed(2)} kg
               </Typography>
               <Typography>{formatINR(o.total)}</Typography>
+              {orderWasEdited(o.originalItems, o.items) && (
+                <Chip size="small" label="Edited" color="warning" variant="outlined" />
+              )}
               <OrderStatusChip status={o.status} />
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            {o.items?.map((it) => (
-              <Box key={it.productId} sx={{ mb: 0.5 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">{it.name} ({formatWeight(it.grams)}) × {it.qty}</Typography>
-                  <Typography variant="body2">{formatINR(it.lineTotal)}</Typography>
-                </Box>
-                {it.instructions && (
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Note: {it.instructions}
-                  </Typography>
-                )}
-              </Box>
-            ))}
+            <OrderItemsDiff order={o} />
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
               Deliver to: {o.shippingAddress?.line}, {o.shippingAddress?.city} — {o.shippingAddress?.pincode}
@@ -79,14 +74,22 @@ export default function MyOrders() {
             <Box sx={{ mt: 1 }}>
               <Chip size="small" label={`Payment: ${paymentLabel(o.paymentMethod)}`} />
             </Box>
-            {[ORDER_STATUS.PLACED, ORDER_STATUS.ACCEPTED].includes(o.status) && (
-              <Button color="error" size="small" sx={{ mt: 1 }} onClick={() => cancel(o)}>
-                Cancel order
-              </Button>
-            )}
+            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              {o.status === ORDER_STATUS.PLACED && (
+                <Button size="small" onClick={() => setEditing(o)}>
+                  Edit order
+                </Button>
+              )}
+              {[ORDER_STATUS.PLACED, ORDER_STATUS.ACCEPTED].includes(o.status) && (
+                <Button color="error" size="small" onClick={() => cancel(o)}>
+                  Cancel order
+                </Button>
+              )}
+            </Box>
           </AccordionDetails>
         </Accordion>
       ))}
+      <EditOrderDialog order={editing} onClose={() => setEditing(null)} onSaved={load} />
     </Box>
   );
 }

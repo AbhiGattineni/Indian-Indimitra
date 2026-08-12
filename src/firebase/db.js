@@ -153,9 +153,22 @@ export async function createOrder(data) {
   return addDoc(collection(db, 'orders'), {
     paymentMethod: PAYMENT_METHOD.COD,
     status: ORDER_STATUS.PLACED,
+    // Immutable snapshot of items as placed, kept alongside the (editable)
+    // `items` field so a later pre-acceptance edit can be diffed against it.
+    originalItems: data.items,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     ...data,
+  });
+}
+// Customer edits an order's items (and recomputed totals) while it's still
+// `placed` — enforced by firestore.rules. Stamps `editedAt` so the UI knows
+// to show the before/after diff.
+export async function updateOrderItems(orderId, patch) {
+  return updateDoc(doc(db, 'orders', orderId), {
+    ...patch,
+    editedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 export async function listOrdersByCustomer(uid) {
