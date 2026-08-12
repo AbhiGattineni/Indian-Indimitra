@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, MenuItem, TextField,
-  CircularProgress,
+  CircularProgress, Chip,
 } from '@mui/material';
 import { listAllOrders } from '../../firebase/db';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
+import { orderWasEdited } from '../../lib/orderDiff';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import AdminOrderDetailDialog from '../../components/AdminOrderDetailDialog';
 
@@ -15,9 +16,18 @@ export default function AdminOrders() {
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
-    (async () => { setOrders(await listAllOrders()); setLoading(false); })();
-  }, []);
+  const load = async () => {
+    const all = await listAllOrders();
+    setOrders(all);
+    setLoading(false);
+    return all;
+  };
+  useEffect(() => { load(); }, []);
+
+  const handleChanged = async () => {
+    const all = await load();
+    setSelected((prev) => (prev ? all.find((o) => o.id === prev.id) || null : null));
+  };
 
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}><CircularProgress /></Box>;
@@ -58,12 +68,19 @@ export default function AdminOrders() {
               <TableCell align="right">{formatINR(o.total)}</TableCell>
               <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
               <TableCell>{paymentLabel(o.paymentMethod)}</TableCell>
-              <TableCell><OrderStatusChip status={o.status} /></TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                  <OrderStatusChip status={o.status} />
+                  {orderWasEdited(o.originalItems, o.items) && (
+                    <Chip size="small" label="Edited" color="warning" variant="outlined" />
+                  )}
+                </Box>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <AdminOrderDetailDialog order={selected} onClose={() => setSelected(null)} />
+      <AdminOrderDetailDialog order={selected} onClose={() => setSelected(null)} onChanged={handleChanged} />
     </Box>
   );
 }

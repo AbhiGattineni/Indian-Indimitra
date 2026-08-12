@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Divider, Grid,
-  Table, TableHead, TableBody, TableRow, TableCell, IconButton, Chip,
+  IconButton, Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import { getUserProfile } from '../firebase/db';
-import { formatINR, formatWeight, cartWeightKg } from '../lib/calculations';
+import { formatINR, cartWeightKg } from '../lib/calculations';
 import { paymentLabel } from '../lib/constants';
 import { printInvoice } from '../lib/invoice';
 import OrderStatusChip from './OrderStatusChip';
+import OrderItemsDiff from './OrderItemsDiff';
+import OrderStatusActions from './OrderStatusActions';
 
 function formatTimestamp(ts) {
   const d = ts?.toDate?.();
@@ -25,7 +27,7 @@ function Field({ label, value }) {
   );
 }
 
-export default function AdminOrderDetailDialog({ order, onClose }) {
+export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
   const [customer, setCustomer] = useState(null);
 
   useEffect(() => {
@@ -79,35 +81,7 @@ export default function AdminOrderDetailDialog({ order, onClose }) {
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Items</Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Item</TableCell>
-              <TableCell>Weight</TableCell>
-              <TableCell align="right">Qty</TableCell>
-              <TableCell align="right">Price / kg</TableCell>
-              <TableCell align="right">Line total</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(order.items || []).map((it, i) => (
-              <TableRow key={it.productId || i}>
-                <TableCell>
-                  {it.name}
-                  {it.instructions && (
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Note: {it.instructions}
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell>{formatWeight(it.grams)}</TableCell>
-                <TableCell align="right">{it.qty}</TableCell>
-                <TableCell align="right">{formatINR(it.price)}</TableCell>
-                <TableCell align="right">{formatINR(it.lineTotal)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <OrderItemsDiff order={order} />
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Totals</Typography>
@@ -137,6 +111,10 @@ export default function AdminOrderDetailDialog({ order, onClose }) {
             <Field label="Reason" value={order.cancelReason} />
           </>
         )}
+
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle2" gutterBottom>Status</Typography>
+        <OrderStatusActions order={order} onChanged={onChanged} />
       </DialogContent>
       <DialogActions>
         <Button startIcon={<DownloadIcon />} onClick={() => printInvoice(order, customer)}>

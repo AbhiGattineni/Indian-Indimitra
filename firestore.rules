@@ -112,11 +112,15 @@ service cloud.firestore {
         || isAssignedFdm(resource.data.storeId)
         || isAdmin()
       );
-      // Customer can update (e.g. cancel) own order; store owner or assigned FDM
-      // can progress it; admin anything.
+      // Customer may cancel their own order (while placed/accepted), or edit
+      // its items/totals while it's still placed — locked out once a
+      // store/FDM/admin accepts it. Only an assigned FDM or admin may
+      // progress an order's status (store owners are read-only on orders).
       allow update: if isSignedIn() && (
-        resource.data.customerUid == request.auth.uid
-        || ownsStore(resource.data.storeId)
+        (resource.data.customerUid == request.auth.uid && (
+          (request.resource.data.status == 'cancelled' && resource.data.status in ['placed', 'accepted'])
+          || (resource.data.status == 'placed' && request.resource.data.status == 'placed')
+        ))
         || isAssignedFdm(resource.data.storeId)
         || isAdmin()
       );
