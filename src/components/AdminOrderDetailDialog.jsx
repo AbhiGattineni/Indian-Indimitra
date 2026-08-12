@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { getUserProfile } from '../firebase/db';
-import { formatINR, formatWeight } from '../lib/calculations';
+import { formatINR, formatWeight, cartWeightKg } from '../lib/calculations';
 import { paymentLabel } from '../lib/constants';
 import OrderStatusChip from './OrderStatusChip';
 
@@ -109,6 +109,7 @@ export default function AdminOrderDetailDialog({ order, onClose }) {
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Totals</Typography>
+        <Field label="Total weight (shipment pricing)" value={`${cartWeightKg(order.items).toFixed(2)} kg`} />
         <Field label="Subtotal" value={formatINR(order.subtotal)} />
         <Field label="Shipping" value={formatINR(order.shippingFee)} />
         <Field label="Tax" value={formatINR(order.taxAmount)} />
