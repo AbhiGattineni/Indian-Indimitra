@@ -4,14 +4,16 @@
 import { useEffect, useState } from 'react';
 import {
   Dialog, DialogContent, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
-  ToggleButton, ToggleButtonGroup, TextField,
+  ToggleButton, ToggleButtonGroup, TextField, Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import { useCartStore } from '../store/useCartStore';
-import { formatINR } from '../lib/calculations';
+import { formatINR, formatWeight, lineTotal as computeLineTotal } from '../lib/calculations';
 import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
 
@@ -23,6 +25,8 @@ const WEIGHT_OPTIONS = [
 
 export default function ProductModal({ open, product, storeId, storeName, onClose }) {
   const addItem = useCartStore((s) => s.addItem);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const cartItems = useCartStore((s) => s.items);
   const [qty, setQty] = useState(1);
   const [grams, setGrams] = useState(1000);
   const [instructions, setInstructions] = useState('');
@@ -37,6 +41,12 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const outOfStock = !product.quantity;
   const unitPrice = product.price * (grams / 1000); // price for the selected weight
   const lineTotal = unitPrice * qty;
+
+  // Existing cart lines for this product (one per weight selected so far) —
+  // shown so re-opening the modal doesn't hide what's already been added.
+  const existingLines = cartItems
+    .filter((i) => i.productId === product.id)
+    .sort((a, b) => a.grams - b.grams);
 
   const handleAdd = () => {
     addItem(storeId, storeName, product, grams, qty, instructions.trim());
@@ -118,6 +128,33 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             <Divider />
 
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
+              {existingLines.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.paper' }}>
+                  <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                    <ShoppingCartCheckoutIcon fontSize="small" color="primary" />
+                    Already in your cart
+                  </Typography>
+                  {existingLines.map((line) => (
+                    <Box key={line.lineId} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.25 }}>
+                      <Typography variant="body2">
+                        {formatWeight(line.grams)} × {line.qty}
+                        {line.instructions && (
+                          <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                            ({line.instructions})
+                          </Typography>
+                        )}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight={600}>{formatINR(computeLineTotal(line))}</Typography>
+                        <IconButton size="small" onClick={() => removeItem(line.lineId)} aria-label="Remove from cart">
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
                   Weight
