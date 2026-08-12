@@ -94,7 +94,7 @@ export default function Checkout() {
       // server-side when this doc is created — no email logic/secrets in the client.
       const ref = await createOrder(orderData);
       // Best-effort clear of the persisted cart doc.
-      try { await clearCartDoc(user.uid, storeId); } catch { /* ignore */ }
+      try { await clearCartDoc(user.uid); } catch { /* ignore */ }
       clear();
       navigate('/orders', { state: { justPlaced: ref.id } });
     } catch (e) {

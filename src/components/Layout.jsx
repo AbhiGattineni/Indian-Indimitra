@@ -24,6 +24,7 @@ import { useCartStore } from '../store/useCartStore';
 import { useStoreSelection } from '../store/useStoreSelection';
 import { signOut } from '../firebase/auth';
 import { ROLES } from '../lib/constants';
+import { useCartSync } from '../hooks/useCartSync';
 import StoreSwitcherModal from './StoreSwitcherModal';
 
 export default function Layout({ children }) {
@@ -32,6 +33,7 @@ export default function Layout({ children }) {
   const { user, profile } = useAuthStore();
   const cartCount = useCartStore((s) => s.items.reduce((n, i) => n + i.qty, 0));
   const { selectedStore, ensureStores } = useStoreSelection();
+  useCartSync();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);

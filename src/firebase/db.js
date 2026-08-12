@@ -186,17 +186,20 @@ export async function deleteAddress(uid, addressId) {
   return deleteDoc(doc(db, 'users', uid, 'addresses', addressId));
 }
 
-/* ---------------- Cart (subcollection of user, one doc per store) ---------------- */
-export async function getCart(uid, storeId) {
-  const snap = await getDoc(doc(db, 'users', uid, 'cart', storeId));
+/* ---------------- Cart (subcollection of user; single active cart per user) --- */
+// A cart is always scoped to one store at a time (client-side rule), so it's
+// stored as a single doc rather than one-per-store — lets a signed-in user
+// pick up the exact same cart on any other browser/device after logging in.
+export async function getCart(uid) {
+  const snap = await getDoc(doc(db, 'users', uid, 'cart', 'current'));
   return snap.exists() ? snap.data() : null;
 }
-export async function saveCart(uid, storeId, items) {
-  return setDoc(doc(db, 'users', uid, 'cart', storeId), {
-    items,
+export async function saveCart(uid, cart) {
+  return setDoc(doc(db, 'users', uid, 'cart', 'current'), {
+    ...cart,
     updatedAt: serverTimestamp(),
   });
 }
-export async function clearCart(uid, storeId) {
-  return deleteDoc(doc(db, 'users', uid, 'cart', storeId));
+export async function clearCart(uid) {
+  return deleteDoc(doc(db, 'users', uid, 'cart', 'current'));
 }
