@@ -3,7 +3,7 @@
 // Matched by product name (case-insensitive substring) — extend this map as
 // more piece-style items get a confirmed per-piece weight.
 const PIECE_WEIGHTS_BY_NAME = [
-  { match: /bobbattlu/i, gramsPerPiece: 100 },
+  { match: /bobbattlu/i, gramsPerPiece: 50 },
 ];
 
 export function pieceWeightFor(productName) {
