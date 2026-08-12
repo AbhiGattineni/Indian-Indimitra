@@ -1,6 +1,6 @@
-// App shell: sticky, responsive top bar. Inline nav + account menu on
-// desktop; brand + cart + hamburger (opening a slide-out drawer) on mobile.
-import { useState } from 'react';
+// App shell: sticky, responsive top bar. Brand + store-switcher pill, inline
+// nav + account menu on desktop; hamburger drawer on mobile.
+import { useState, useEffect } from 'react';
 import {
   AppBar, Toolbar, Typography, Button, Box, Badge, IconButton, Container,
   Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Menu, MenuItem,
@@ -10,27 +10,35 @@ import { useTheme, alpha } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import HomeIcon from '@mui/icons-material/Home';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import StoreIcon from '@mui/icons-material/Store';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
+import { useStoreSelection } from '../store/useStoreSelection';
 import { signOut } from '../firebase/auth';
 import { ROLES } from '../lib/constants';
+import StoreSwitcherModal from './StoreSwitcherModal';
 
 export default function Layout({ children }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, profile } = useAuthStore();
   const cartCount = useCartStore((s) => s.items.reduce((n, i) => n + i.qty, 0));
+  const { selectedStore, ensureStores } = useStoreSelection();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  useEffect(() => { ensureStores(); }, [ensureStores]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -41,6 +49,7 @@ export default function Layout({ children }) {
 
   const navItems = [
     profile?.role === ROLES.ADMIN && { label: 'Admin', to: '/admin', icon: <AdminPanelSettingsIcon fontSize="small" /> },
+    profile?.role === ROLES.FDM && { label: 'My Businesses', to: '/fdm', icon: <BusinessCenterIcon fontSize="small" /> },
     profile?.role === ROLES.SELLER && { label: 'Seller', to: '/seller', icon: <StoreIcon fontSize="small" /> },
     user && { label: 'My Orders', to: '/orders', icon: <ReceiptLongIcon fontSize="small" /> },
   ].filter(Boolean);
@@ -55,29 +64,36 @@ export default function Layout({ children }) {
         sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}
       >
         <Toolbar sx={{ minHeight: { xs: 56, sm: 64 }, px: { xs: 1.5, sm: 3 }, gap: 0.5 }}>
-          {/* Brand */}
+          {/* Brand logo → home */}
           <Box
             component={Link}
             to="/"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', color: 'inherit', minWidth: 0 }}
+            aria-label="Home"
+            sx={{
+              width: 34, height: 34, borderRadius: '50%', flexShrink: 0, mr: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: 'primary.main', color: 'primary.contrastText',
+            }}
           >
-            <Box
-              sx={{
-                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: 'primary.main', color: 'primary.contrastText',
-              }}
-            >
-              <StorefrontIcon fontSize="small" />
-            </Box>
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.15rem' }, letterSpacing: -0.2 }}
-            >
-              Anupama Home Foods
-            </Typography>
+            <StorefrontIcon fontSize="small" />
           </Box>
+
+          {/* Store switcher pill */}
+          <Button
+            onClick={() => setSwitcherOpen(true)}
+            endIcon={<KeyboardArrowDownIcon />}
+            sx={{
+              minWidth: 0, maxWidth: { xs: 190, sm: 320 },
+              px: { xs: 1, sm: 1.5 }, py: 0.5,
+              borderRadius: 9999, border: '1px solid', borderColor: 'divider',
+              color: 'text.primary', textTransform: 'none',
+              '&:hover': { borderColor: 'text.primary', bgcolor: 'action.hover' },
+            }}
+          >
+            <Typography noWrap sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
+              {selectedStore?.name || 'Select a store'}
+            </Typography>
+          </Button>
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -85,7 +101,7 @@ export default function Layout({ children }) {
           {!isMobile && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               {navItems.map((item) => {
-                const active = location.pathname === item.to;
+                const active = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
                 return (
                   <Button
                     key={item.to}
@@ -93,10 +109,7 @@ export default function Layout({ children }) {
                     to={item.to}
                     startIcon={item.icon}
                     sx={{
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      px: 1.5,
-                      borderRadius: 2,
+                      fontWeight: 600, fontSize: '0.9rem', px: 1.5, borderRadius: 2,
                       color: active ? 'primary.main' : 'text.primary',
                       bgcolor: active ? (t) => alpha(t.palette.primary.main, 0.1) : 'transparent',
                       '&:hover': { bgcolor: active ? (t) => alpha(t.palette.primary.main, 0.14) : 'action.hover' },
@@ -197,6 +210,10 @@ export default function Layout({ children }) {
             <ListItemIcon><HomeIcon /></ListItemIcon>
             <ListItemText primary="Home" />
           </ListItemButton>
+          <ListItemButton onClick={() => { setDrawerOpen(false); setSwitcherOpen(true); }}>
+            <ListItemIcon><StorefrontIcon /></ListItemIcon>
+            <ListItemText primary="Change store" />
+          </ListItemButton>
           {navItems.map((item) => (
             <ListItemButton key={item.to} component={Link} to={item.to} onClick={() => setDrawerOpen(false)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
@@ -219,6 +236,8 @@ export default function Layout({ children }) {
           )}
         </List>
       </Drawer>
+
+      <StoreSwitcherModal open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
 
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
         {children}

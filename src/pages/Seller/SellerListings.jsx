@@ -17,7 +17,9 @@ import { PRODUCT_STATUS } from '../../lib/constants';
 
 const EMPTY = { name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit', imageUrl: '', status: PRODUCT_STATUS.ACTIVE };
 
-export default function SellerListings() {
+// storeOverride lets an FDM (or admin) manage a specific assigned store's
+// listings; sellers leave it undefined and their own store is looked up.
+export default function SellerListings({ storeOverride }) {
   const { user } = useAuthStore();
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
@@ -30,14 +32,14 @@ export default function SellerListings() {
   const [error, setError] = useState('');
 
   const load = async (s) => {
-    const st = s || (await getStoreByOwner(user.uid));
+    const st = s || storeOverride || (await getStoreByOwner(user.uid));
     setStore(st);
     const [p, c] = await Promise.all([listProductsByStore(st.id), listCategories()]);
     setProducts(p);
     setCategories(c);
     setLoading(false);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(() => { if (user) load(storeOverride); }, [user, storeOverride?.id]);
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setError(''); setOpen(true); };
   const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY, ...p }); setError(''); setOpen(true); };

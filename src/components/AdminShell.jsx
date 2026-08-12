@@ -9,6 +9,7 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CategoryIcon from '@mui/icons-material/Category';
 import PeopleIcon from '@mui/icons-material/People';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'Categories', to: '/admin/categories', icon: CategoryIcon },
   { label: 'Stores & Products', to: '/admin/catalog', icon: Inventory2Icon },
   { label: 'Users & Roles', to: '/admin/users', icon: PeopleIcon },
+  { label: 'Managers', to: '/admin/managers', icon: BusinessCenterIcon },
   { label: 'Platform Config', to: '/admin/config', icon: SettingsIcon },
   { label: 'Shipping Rates', to: '/admin/shipping-rates', icon: LocalShippingIcon },
 ];

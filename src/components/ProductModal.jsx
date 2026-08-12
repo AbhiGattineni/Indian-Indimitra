@@ -75,9 +75,11 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             alt={product.name}
             sx={{
               width: { xs: '100%', sm: 240 },
-              height: { xs: 220, sm: 'auto' },
+              height: { xs: 220, sm: 300 },
               flexShrink: 0,
-              objectFit: 'cover',
+              objectFit: 'contain',
+              bgcolor: 'grey.50',
+              p: 1,
             }}
           />
 

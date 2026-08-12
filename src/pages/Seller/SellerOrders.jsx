@@ -10,7 +10,9 @@ import { formatINR, formatWeight } from '../../lib/calculations';
 import { ORDER_STATUS } from '../../lib/constants';
 import OrderStatusChip from '../../components/OrderStatusChip';
 
-export default function SellerOrders() {
+// storeOverride lets an FDM (or admin) run a specific assigned store; sellers
+// leave it undefined and their own owned store is looked up.
+export default function SellerOrders({ storeOverride }) {
   const { user } = useAuthStore();
   const [store, setStore] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -19,12 +21,12 @@ export default function SellerOrders() {
   const [ship, setShip] = useState({ courierName: '', trackingNumber: '', trackingUrl: '' });
 
   const load = async (s) => {
-    const st = s || (await getStoreByOwner(user.uid));
+    const st = s || storeOverride || (await getStoreByOwner(user.uid));
     setStore(st);
     setOrders(await listOrdersByStore(st.id));
     setLoading(false);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(() => { if (user) load(storeOverride); }, [user, storeOverride?.id]);
 
   const setStatus = async (o, status) => {
     await updateOrder(o.id, { status });
