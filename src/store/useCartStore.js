@@ -49,4 +49,13 @@ export const useCartStore = create((set, get) => ({
     set((s) => ({ items: s.items.filter((i) => i.lineId !== lineId) })),
 
   clear: () => set({ storeId: null, storeName: '', items: [] }),
+
+  // Replace local state wholesale — used to load a signed-in user's cart
+  // saved from another browser/device (see useCartSync).
+  hydrate: (cart) =>
+    set({
+      storeId: cart?.storeId || null,
+      storeName: cart?.storeName || '',
+      items: cart?.items || [],
+    }),
 }));
