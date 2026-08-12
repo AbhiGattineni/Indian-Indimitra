@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import {
   Dialog, DialogContent, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
-  ToggleButton, ToggleButtonGroup, TextField, Paper,
+  ToggleButton, ToggleButtonGroup, TextField, Paper, Badge,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -168,9 +168,16 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                 >
                   {WEIGHT_OPTIONS.map((w) => {
                     const pieces = piecesForGrams(product.name, w.g);
+                    const inCartQty = existingLines.find((l) => l.grams === w.g)?.qty || 0;
                     return (
                       <ToggleButton key={w.g} value={w.g} sx={{ px: 1.75, fontWeight: 600, textTransform: 'none' }}>
-                        {w.label}{pieces ? ` (~${pieces} pcs)` : ''}
+                        <Badge
+                          badgeContent={inCartQty}
+                          color="primary"
+                          sx={{ '& .MuiBadge-badge': { top: -8, right: -8 } }}
+                        >
+                          {w.label}{pieces ? ` (~${pieces} pcs)` : ''}
+                        </Badge>
                       </ToggleButton>
                     );
                   })}
