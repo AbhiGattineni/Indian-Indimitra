@@ -187,6 +187,26 @@ export async function updateOrder(orderId, data) {
   return updateDoc(doc(db, 'orders', orderId), { ...data, updatedAt: serverTimestamp() });
 }
 
+/* ---------------- Reviews (one per product+customer, doc id `${productId}_${uid}`) --- */
+export async function getReview(id) {
+  const snap = await getDoc(doc(db, 'reviews', id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+export async function listReviewsByProduct(productId) {
+  const snap = await getDocs(query(collection(db, 'reviews'), where('productId', '==', productId)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+export async function listReviewsByStore(storeId) {
+  const snap = await getDocs(query(collection(db, 'reviews'), where('storeId', '==', storeId)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+export async function upsertReview(id, data) {
+  return setDoc(doc(db, 'reviews', id), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+export async function deleteReview(id) {
+  return deleteDoc(doc(db, 'reviews', id));
+}
+
 /* ---------------- Addresses (subcollection of user) ---------------- */
 export async function listAddresses(uid) {
   const snap = await getDocs(collection(db, 'users', uid, 'addresses'));

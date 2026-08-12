@@ -126,5 +126,17 @@ service cloud.firestore {
       );
       allow delete: if isAdmin();
     }
+
+    // ---------- reviews (one per product+customer; doc id `${productId}_${uid}`) ----------
+    match /reviews/{reviewId} {
+      allow read: if true; // ratings/reviews shown to everyone, signed in or not
+      allow create, update: if isSignedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && reviewId == request.resource.data.productId + '_' + request.auth.uid
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow delete: if isSignedIn() && resource.data.customerUid == request.auth.uid;
+    }
   }
 }

@@ -16,6 +16,7 @@ import { useCartStore } from '../store/useCartStore';
 import { formatINR, formatWeight, lineTotal as computeLineTotal } from '../lib/calculations';
 import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
+import ProductReviews from './ProductReviews';
 
 const WEIGHT_OPTIONS = [
   { g: 250, label: '250 g' },
@@ -123,6 +124,8 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                   In stock: {product.quantity} {product.unit}
                 </Typography>
               )}
+
+              <ProductReviews productId={product.id} />
             </DialogContent>
 
             <Divider />

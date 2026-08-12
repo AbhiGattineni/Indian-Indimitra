@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
-  MenuItem, CircularProgress,
+  MenuItem, CircularProgress, Rating,
 } from '@mui/material';
-import { listCategories, listProductsByStore } from '../../firebase/db';
+import { listCategories, listProductsByStore, listReviewsByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
 import { PRODUCT_STATUS } from '../../lib/constants';
+import { ratingsByProduct } from '../../lib/reviews';
 import { useStoreSelection } from '../../store/useStoreSelection';
 import StoreImageSlider from '../../components/StoreImageSlider';
 import ProductModal from '../../components/ProductModal';
@@ -15,6 +16,7 @@ export default function Browse() {
   const { selectedStore, ensureStores, loaded } = useStoreSelection();
   const store = selectedStore;
   const [products, setProducts] = useState([]);
+  const [ratings, setRatings] = useState({});
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
@@ -26,13 +28,17 @@ export default function Browse() {
   // Categories are global; loaded once.
   useEffect(() => { listCategories().then(setCategories).catch(() => {}); }, []);
 
-  // Load the selected store's active products whenever the store changes.
+  // Load the selected store's active products (+ ratings, for the small
+  // per-card badge) whenever the store changes.
   useEffect(() => {
     if (!loaded) return;
-    if (!store) { setProducts([]); setLoading(false); return; }
+    if (!store) { setProducts([]); setRatings({}); setLoading(false); return; }
     setLoading(true);
-    listProductsByStore(store.id)
-      .then((p) => setProducts(p.filter((x) => x.status === PRODUCT_STATUS.ACTIVE)))
+    Promise.all([listProductsByStore(store.id), listReviewsByStore(store.id)])
+      .then(([p, reviews]) => {
+        setProducts(p.filter((x) => x.status === PRODUCT_STATUS.ACTIVE));
+        setRatings(ratingsByProduct(reviews));
+      })
       .catch((e) => console.error('Failed to load products', e))
       .finally(() => setLoading(false));
   }, [store?.id, loaded]);
@@ -115,6 +121,14 @@ export default function Browse() {
                     <Typography variant="caption" color="text.secondary">
                       {p.unit}
                     </Typography>
+                    {ratings[p.id] && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                        <Rating value={ratings[p.id].avg} precision={0.1} readOnly size="small" />
+                        <Typography variant="caption" color="text.secondary">
+                          ({ratings[p.id].count})
+                        </Typography>
+                      </Box>
+                    )}
                   </CardContent>
                 </CardActionArea>
               </Card>
