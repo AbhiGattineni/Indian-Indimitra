@@ -3,38 +3,39 @@ import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
   MenuItem, CircularProgress,
 } from '@mui/material';
-import { listActiveProducts, listCategories, listStores } from '../../firebase/db';
+import { listCategories, listProductsByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
-import { STORE_STATUS } from '../../lib/constants';
+import { PRODUCT_STATUS } from '../../lib/constants';
+import { useStoreSelection } from '../../store/useStoreSelection';
 import StoreImageSlider from '../../components/StoreImageSlider';
 import ProductModal from '../../components/ProductModal';
 
 export default function Browse() {
+  const { selectedStore, ensureStores, loaded } = useStoreSelection();
+  const store = selectedStore;
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [store, setStore] = useState(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  useEffect(() => { ensureStores(); }, [ensureStores]);
+
+  // Categories are global; loaded once.
+  useEffect(() => { listCategories().then(setCategories).catch(() => {}); }, []);
+
+  // Load the selected store's active products whenever the store changes.
   useEffect(() => {
-    (async () => {
-      try {
-        const [p, c, stores] = await Promise.all([
-          listActiveProducts(), listCategories(), listStores(STORE_STATUS.APPROVED),
-        ]);
-        setProducts(p);
-        setCategories(c);
-        setStore(stores[0] || null);
-      } catch (e) {
-        console.error('Failed to load catalog', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    if (!loaded) return;
+    if (!store) { setProducts([]); setLoading(false); return; }
+    setLoading(true);
+    listProductsByStore(store.id)
+      .then((p) => setProducts(p.filter((x) => x.status === PRODUCT_STATUS.ACTIVE)))
+      .catch((e) => console.error('Failed to load products', e))
+      .finally(() => setLoading(false));
+  }, [store?.id, loaded]);
 
   const filtered = products.filter((p) => {
     const matchName = p.name?.toLowerCase().includes(search.toLowerCase());
@@ -95,9 +96,14 @@ export default function Browse() {
                 <CardActionArea onClick={() => setSelectedProduct(p)}>
                   <CardMedia
                     component="img"
-                    height="150"
                     image={p.imageUrl || placeholderImage(p.name)}
                     alt={p.name}
+                    sx={{
+                      width: '100%',
+                      aspectRatio: '4 / 3',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
                   />
                   <CardContent>
                     <Typography noWrap fontWeight={600}>

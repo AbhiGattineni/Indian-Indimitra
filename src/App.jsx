@@ -20,12 +20,16 @@ import BecomeSeller from './pages/Customer/BecomeSeller';
 import SellerDashboard from './pages/Seller/SellerDashboard';
 import SellerListings from './pages/Seller/SellerListings';
 import SellerOrders from './pages/Seller/SellerOrders';
+// FDM (Forward Deployment Manager)
+import FdmDashboard from './pages/Fdm/FdmDashboard';
+import FdmManageStore from './pages/Fdm/FdmManageStore';
 // Admin
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import SellerApprovals from './pages/Admin/SellerApprovals';
 import AdminOrders from './pages/Admin/AdminOrders';
 import Categories from './pages/Admin/Categories';
 import Users from './pages/Admin/Users';
+import FdmManagement from './pages/Admin/FdmManagement';
 import PlatformConfig from './pages/Admin/PlatformConfig';
 import ShippingRates from './pages/Admin/ShippingRates';
 import Catalog from './pages/Admin/Catalog';
@@ -100,6 +104,24 @@ export default function App() {
           }
         />
 
+        {/* FDM — Forward Deployment Manager runs assigned businesses */}
+        <Route
+          path="/fdm"
+          element={
+            <ProtectedRoute allow={ROLES.FDM}>
+              <FdmDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fdm/manage/:storeId"
+          element={
+            <ProtectedRoute allow={[ROLES.FDM, ROLES.ADMIN]}>
+              <FdmManageStore />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin — persistent sidebar shell wraps every admin page */}
         <Route
           path="/admin"
@@ -115,6 +137,7 @@ export default function App() {
           <Route path="categories" element={<Categories />} />
           <Route path="catalog" element={<Catalog />} />
           <Route path="users" element={<Users />} />
+          <Route path="managers" element={<FdmManagement />} />
           <Route path="config" element={<PlatformConfig />} />
           <Route path="shipping-rates" element={<ShippingRates />} />
         </Route>

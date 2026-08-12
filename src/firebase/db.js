@@ -34,6 +34,16 @@ export async function setUserRole(uid, role) {
   await updateDoc(doc(db, 'users', uid), { role });
 }
 
+export async function getUserByEmail(email) {
+  const snap = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+export async function listUsersByRole(role) {
+  const snap = await getDocs(query(collection(db, 'users'), where('role', '==', role)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 /* ---------------- Platform config ---------------- */
 export async function getPlatformConfig() {
   const snap = await getDoc(doc(db, 'platformConfig', 'global'));
@@ -75,9 +85,21 @@ export async function createStore(ownerUid, data) {
   return addDoc(collection(db, 'stores'), {
     ownerUid,
     approvalStatus: STORE_STATUS.PENDING,
+    fdmUids: [],
     createdAt: serverTimestamp(),
     ...data,
   });
+}
+// Stores assigned to a Forward Deployment Manager.
+export async function listStoresByFdm(uid) {
+  const snap = await getDocs(
+    query(collection(db, 'stores'), where('fdmUids', 'array-contains', uid))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+// Replace a store's assigned-FDM list (admin only, enforced by rules).
+export async function setStoreFdmUids(storeId, fdmUids) {
+  return updateDoc(doc(db, 'stores', storeId), { fdmUids });
 }
 export async function getStore(storeId) {
   const snap = await getDoc(doc(db, 'stores', storeId));

@@ -7,7 +7,18 @@ export const SUPER_ADMIN_EMAIL = 'anddhensoftware@gmail.com';
 export const ROLES = {
   CUSTOMER: 'customer',
   SELLER: 'seller',
+  // Forward Deployment Manager — Indimitra-side rep who fully runs one or more
+  // assigned businesses (assigned by admin via store.fdmUids).
+  FDM: 'fdm',
   ADMIN: 'admin',
+};
+
+// Human labels for roles (used in admin UI + menus).
+export const ROLE_LABELS = {
+  customer: 'Customer',
+  seller: 'Seller',
+  fdm: 'Forward Deployment Manager',
+  admin: 'Admin',
 };
 
 export const STORE_STATUS = {

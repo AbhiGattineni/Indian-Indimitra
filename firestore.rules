@@ -25,6 +25,11 @@ service cloud.firestore {
       return isSignedIn()
         && get(/databases/$(database)/documents/stores/$(storeId)).data.ownerUid == request.auth.uid;
     }
+    // Forward Deployment Manager assigned to the given store (uid in fdmUids).
+    function isAssignedFdm(storeId) {
+      return isSignedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/stores/$(storeId)).data.fdmUids;
+    }
 
     // ---------- users ----------
     match /users/{uid} {
@@ -72,10 +77,15 @@ service cloud.firestore {
         || (isSignedIn()
             && request.resource.data.ownerUid == request.auth.uid
             && request.resource.data.approvalStatus == 'pending');
-      // Admin controls approval; owner may edit their store but not its approval status.
+      // Admin controls approval + FDM assignment. Owner may edit their store but
+      // not its approval status. An assigned FDM may edit store details but not
+      // its approval status or the FDM assignment list.
       allow update: if isAdmin()
         || (resource.data.ownerUid == request.auth.uid
-            && request.resource.data.approvalStatus == resource.data.approvalStatus);
+            && request.resource.data.approvalStatus == resource.data.approvalStatus)
+        || (isAssignedFdm(storeId)
+            && request.resource.data.approvalStatus == resource.data.approvalStatus
+            && request.resource.data.fdmUids == resource.data.fdmUids);
       allow delete: if isAdmin();
     }
 
@@ -83,9 +93,11 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create: if isAdmin()
-        || (isSeller() && request.resource.data.ownerUid == request.auth.uid);
+        || (isSeller() && request.resource.data.ownerUid == request.auth.uid)
+        || isAssignedFdm(request.resource.data.storeId);
       allow update, delete: if isAdmin()
-        || (isSeller() && resource.data.ownerUid == request.auth.uid);
+        || (isSeller() && resource.data.ownerUid == request.auth.uid)
+        || isAssignedFdm(resource.data.storeId);
     }
 
     // ---------- orders ----------
@@ -93,16 +105,19 @@ service cloud.firestore {
       // Customer creates their own order.
       allow create: if isSignedIn()
         && request.resource.data.customerUid == request.auth.uid;
-      // Readable by the customer, the store owner, or an admin.
+      // Readable by the customer, the store owner, an assigned FDM, or an admin.
       allow read: if isSignedIn() && (
         resource.data.customerUid == request.auth.uid
         || ownsStore(resource.data.storeId)
+        || isAssignedFdm(resource.data.storeId)
         || isAdmin()
       );
-      // Customer can update (e.g. cancel) own order; seller owner can progress it; admin anything.
+      // Customer can update (e.g. cancel) own order; store owner or assigned FDM
+      // can progress it; admin anything.
       allow update: if isSignedIn() && (
         resource.data.customerUid == request.auth.uid
         || ownsStore(resource.data.storeId)
+        || isAssignedFdm(resource.data.storeId)
         || isAdmin()
       );
       allow delete: if isAdmin();
