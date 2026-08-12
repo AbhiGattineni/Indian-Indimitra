@@ -60,9 +60,16 @@ export default function SellerOrders() {
           </AccordionSummary>
           <AccordionDetails>
             {o.items?.map((it) => (
-              <Box key={it.productId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2">{it.name} ({formatWeight(it.grams)}) × {it.qty}</Typography>
-                <Typography variant="body2">{formatINR(it.lineTotal)}</Typography>
+              <Box key={it.productId} sx={{ mb: 0.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{it.name} ({formatWeight(it.grams)}) × {it.qty}</Typography>
+                  <Typography variant="body2">{formatINR(it.lineTotal)}</Typography>
+                </Box>
+                {it.instructions && (
+                  <Typography variant="caption" color="error.main" display="block">
+                    Note: {it.instructions}
+                  </Typography>
+                )}
               </Box>
             ))}
             <Divider sx={{ my: 1 }} />

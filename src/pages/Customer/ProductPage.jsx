@@ -9,6 +9,7 @@ import { getStore } from '../../firebase/db';
 import { useCartStore } from '../../store/useCartStore';
 import { formatINR } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
+import AddToCartDialog from '../../components/AddToCartDialog';
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function ProductPage() {
   const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -40,8 +42,8 @@ export default function ProductPage() {
   }
   if (!product) return <Typography>Product not found.</Typography>;
 
-  const handleAdd = () => {
-    addItem(product.storeId, store?.name || '', product, 1000, 1);
+  const handleConfirm = ({ grams, qty, instructions }) => {
+    addItem(product.storeId, store?.name || '', product, grams, qty, instructions);
     setToast(true);
   };
 
@@ -76,7 +78,7 @@ export default function ProductPage() {
           <Button
             variant="contained"
             size="large"
-            onClick={handleAdd}
+            onClick={() => setDialogOpen(true)}
             disabled={!product.quantity}
           >
             Add to cart
@@ -86,6 +88,12 @@ export default function ProductPage() {
           </Button>
         </Grid>
       </Grid>
+      <AddToCartDialog
+        open={dialogOpen}
+        product={product}
+        onClose={() => setDialogOpen(false)}
+        onConfirm={handleConfirm}
+      />
       <Snackbar
         open={toast}
         autoHideDuration={2000}

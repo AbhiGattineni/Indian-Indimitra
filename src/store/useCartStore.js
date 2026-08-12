@@ -8,16 +8,21 @@ const lineIdFor = (productId, grams) => `${productId}_${grams}`;
 export const useCartStore = create((set, get) => ({
   storeId: null,
   storeName: '',
-  items: [], // { lineId, productId, name, price, grams, qty, imageUrl }
+  items: [], // { lineId, productId, name, price, grams, qty, imageUrl, instructions }
 
-  addItem: (storeId, storeName, product, grams = 1000, qty = 1) => {
+  addItem: (storeId, storeName, product, grams = 1000, qty = 1, instructions = '') => {
     const state = get();
     // New store => reset cart to keep one seller per order.
     let items = state.storeId === storeId ? [...state.items] : [];
     const lineId = lineIdFor(product.id, grams);
     const idx = items.findIndex((i) => i.lineId === lineId);
     if (idx >= 0) {
-      items[idx] = { ...items[idx], qty: items[idx].qty + qty };
+      items[idx] = {
+        ...items[idx],
+        qty: items[idx].qty + qty,
+        // A newly-entered note replaces the old one; otherwise keep it.
+        instructions: instructions || items[idx].instructions,
+      };
     } else {
       items.push({
         lineId,
@@ -27,6 +32,7 @@ export const useCartStore = create((set, get) => ({
         grams,
         qty,
         imageUrl: product.imageUrl || '',
+        instructions,
       });
     }
     set({ storeId, storeName, items });
