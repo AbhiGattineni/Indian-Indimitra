@@ -4,7 +4,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { listAllOrders } from '../../firebase/db';
-import { formatINR } from '../../lib/calculations';
+import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import AdminOrderDetailDialog from '../../components/AdminOrderDetailDialog';
@@ -41,6 +41,7 @@ export default function AdminOrders() {
             <TableCell>Order</TableCell>
             <TableCell>Customer</TableCell>
             <TableCell>Store</TableCell>
+            <TableCell align="right">Weight</TableCell>
             <TableCell align="right">Total</TableCell>
             <TableCell align="right">Commission</TableCell>
             <TableCell>Payment</TableCell>
@@ -53,6 +54,7 @@ export default function AdminOrders() {
               <TableCell>#{o.id.slice(0, 6)}</TableCell>
               <TableCell>{o.customerEmail}</TableCell>
               <TableCell>{o.storeName}</TableCell>
+              <TableCell align="right">{cartWeightKg(o.items).toFixed(2)} kg</TableCell>
               <TableCell align="right">{formatINR(o.total)}</TableCell>
               <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
               <TableCell>{paymentLabel(o.paymentMethod)}</TableCell>

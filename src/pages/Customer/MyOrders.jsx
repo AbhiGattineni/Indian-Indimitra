@@ -6,7 +6,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
-import { formatINR, formatWeight } from '../../lib/calculations';
+import { formatINR, formatWeight, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import OrderStatusChip from '../../components/OrderStatusChip';
 
@@ -45,6 +45,9 @@ export default function MyOrders() {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
               <Typography sx={{ flexGrow: 1 }}>
                 #{o.id.slice(0, 6)} — {o.storeName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {cartWeightKg(o.items).toFixed(2)} kg
               </Typography>
               <Typography>{formatINR(o.total)}</Typography>
               <OrderStatusChip status={o.status} />
