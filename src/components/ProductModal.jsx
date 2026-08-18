@@ -68,6 +68,9 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             borderRadius: 4,
             overflow: 'hidden',
             boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '90vh',
           },
         }}
       >
@@ -81,7 +84,11 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
           <CloseIcon fontSize="small" />
         </IconButton>
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+        {/* Scrolls independently so the Total/Add-to-Cart footer below always
+            stays reachable, however tall the product info + reviews get. */}
+        <Box sx={{
+          display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, overflowY: 'auto', minHeight: 0,
+        }}>
           <Box
             component="img"
             src={product.imageUrl || placeholderImage(product.name)}
@@ -223,34 +230,39 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                 fullWidth
                 sx={{ bgcolor: 'background.paper' }}
               />
+            </Box>
+          </Box>
+        </Box>
 
-              <Divider sx={{ borderStyle: 'dashed' }} />
-
-              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700} component="span">
-                    Total
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {WEIGHT_OPTIONS.find((w) => w.g === grams)?.label} × {qty} @ {formatINR(unitPrice)}
-                  </Typography>
-                </Box>
-                <Typography variant="h6" fontWeight={700}>
-                  {formatINR(lineTotal)}
+        {/* Fixed footer (outside the scroll area above) so Total/Add-to-Cart
+            is always reachable no matter how tall the scrollable content gets. */}
+        <Box sx={{ flexShrink: 0 }}>
+          <Divider sx={{ borderStyle: 'dashed' }} />
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700} component="span">
+                  Total
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  {WEIGHT_OPTIONS.find((w) => w.g === grams)?.label} × {qty} @ {formatINR(unitPrice)}
                 </Typography>
               </Box>
-
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<ShoppingCartIcon />}
-                disabled={outOfStock}
-                onClick={handleAdd}
-                sx={{ py: 1.4, fontWeight: 600, fontSize: '1rem' }}
-              >
-                {outOfStock ? 'Unavailable' : 'Add to Cart'}
-              </Button>
+              <Typography variant="h6" fontWeight={700}>
+                {formatINR(lineTotal)}
+              </Typography>
             </Box>
+
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<ShoppingCartIcon />}
+              disabled={outOfStock}
+              onClick={handleAdd}
+              sx={{ py: 1.4, fontWeight: 600, fontSize: '1rem' }}
+            >
+              {outOfStock ? 'Unavailable' : 'Add to Cart'}
+            </Button>
           </Box>
         </Box>
       </Dialog>
