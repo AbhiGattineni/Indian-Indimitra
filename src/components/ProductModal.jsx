@@ -1,9 +1,10 @@
-// Quick-view "mini ordering page": product image + full details on one side,
-// a proper order-summary style footer (quantity, running total, Add to Cart)
-// on the other — avoids a full page navigation while still feeling spacious.
+// Quick-view "mini ordering page": a compact single-column card — image
+// banner up top, everything else (info, controls, Add to Cart) in one dense
+// content block below, so there's no wasted whitespace from redundant
+// padded sections or a mismatched image/content split.
 import { useEffect, useState } from 'react';
 import {
-  Dialog, DialogContent, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
+  Dialog, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
   ToggleButton, ToggleButtonGroup, TextField, Paper, Badge,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -60,183 +61,167 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
       <Dialog
         open={open}
         onClose={onClose}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
         scroll="body"
         BackdropProps={{ sx: { backgroundColor: 'rgba(15, 15, 15, 0.72)' } }}
         PaperProps={{
           sx: {
-            borderRadius: 4,
+            borderRadius: 3,
             overflow: 'hidden',
             boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.06)',
             my: { xs: 2, sm: 4 },
           },
         }}
       >
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: 'absolute', top: 12, right: 12, zIndex: 2,
-            bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-
-        {/* No internal scroll pane — if the content is taller than the
-            viewport, the page/backdrop scrolls as a whole (Dialog scroll="body")
-            instead of a confusing nested scrollbar. */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+        <Box sx={{ position: 'relative' }}>
           <Box
             component="img"
             src={product.imageUrl || placeholderImage(product.name)}
             alt={product.name}
-            sx={{
-              width: { xs: '100%', sm: 240 },
-              height: { xs: 220, sm: 300 },
-              flexShrink: 0,
-              objectFit: 'contain',
-              bgcolor: 'grey.50',
-              p: 1,
-            }}
+            sx={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', bgcolor: 'grey.100', display: 'block' }}
           />
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="h5" fontWeight={700}>
-                {product.name}
-              </Typography>
-
-              {product.description && (
-                <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                  {product.description}
-                </Typography>
-              )}
-
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mt: 0.5 }}>
-                <Typography variant="h4" color="primary.main" fontWeight={700}>
-                  {formatINR(product.price)}
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  / {product.unit}
-                </Typography>
-              </Box>
-
-              {outOfStock ? (
-                <Chip label="Sold out" color="default" sx={{ alignSelf: 'flex-start', mt: 0.5 }} />
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  In stock: {product.quantity} {product.unit}
-                </Typography>
-              )}
-
-              <ProductReviews productId={product.id} />
-            </DialogContent>
-
-            <Divider />
-
-            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
-              {existingLines.length > 0 && (
-                <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'background.paper' }}>
-                  <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-                    <ShoppingCartCheckoutIcon fontSize="small" color="primary" />
-                    Already in your cart
-                  </Typography>
-                  {existingLines.map((line) => (
-                    <Box key={line.lineId} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.25 }}>
-                      <Typography variant="body2">
-                        {formatWeight(line.grams)} × {line.qty}
-                        {line.instructions && (
-                          <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            ({line.instructions})
-                          </Typography>
-                        )}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography variant="body2" fontWeight={600}>{formatINR(computeLineTotal(line))}</Typography>
-                        <IconButton size="small" onClick={() => removeItem(line.lineId)} aria-label="Remove from cart">
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  ))}
-                </Paper>
-              )}
-
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Weight
-                </Typography>
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={grams}
-                  onChange={(_, v) => v && setGrams(v)}
-                  disabled={outOfStock}
-                >
-                  {WEIGHT_OPTIONS.map((w) => {
-                    const pieces = piecesForGrams(product.name, w.g);
-                    const inCartQty = existingLines.find((l) => l.grams === w.g)?.qty || 0;
-                    return (
-                      <ToggleButton key={w.g} value={w.g} sx={{ px: 1.75, fontWeight: 600, textTransform: 'none' }}>
-                        <Badge
-                          badgeContent={inCartQty}
-                          color="primary"
-                          sx={{ '& .MuiBadge-badge': { top: -8, right: -8 } }}
-                        >
-                          {w.label}{pieces ? ` (~${pieces} pcs)` : ''}
-                        </Badge>
-                      </ToggleButton>
-                    );
-                  })}
-                </ToggleButtonGroup>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Quantity
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'flex', alignItems: 'center', border: '2px solid', borderColor: 'primary.main',
-                    borderRadius: 2, opacity: outOfStock ? 0.4 : 1, bgcolor: 'background.paper',
-                  }}
-                >
-                  <IconButton disabled={outOfStock || qty <= 1}
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}>
-                    <RemoveIcon fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ minWidth: 32, textAlign: 'center', fontWeight: 700, fontSize: '1.05rem' }}>
-                    {qty}
-                  </Typography>
-                  <IconButton disabled={outOfStock}
-                    onClick={() => setQty((q) => q + 1)}>
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
-
-              <TextField
-                label="Special instructions (optional)"
-                placeholder="e.g. less sweet, extra crispy…"
-                multiline
-                minRows={2}
-                size="small"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                disabled={outOfStock}
-                fullWidth
-                sx={{ bgcolor: 'background.paper' }}
-              />
-            </Box>
-          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{
+              position: 'absolute', top: 8, right: 8,
+              bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
 
-        <Divider sx={{ borderStyle: 'dashed' }} />
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
+        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+            <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.25 }}>
+              {product.name}
+            </Typography>
+            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+              <Typography variant="h6" color="primary.main" fontWeight={700} sx={{ lineHeight: 1.25 }}>
+                {formatINR(product.price)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">/ {product.unit}</Typography>
+            </Box>
+          </Box>
+
+          {outOfStock ? (
+            <Chip label="Sold out" size="small" sx={{ alignSelf: 'flex-start' }} />
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              In stock: {product.quantity} {product.unit}
+            </Typography>
+          )}
+
+          {product.description && (
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              {product.description}
+            </Typography>
+          )}
+
+          <ProductReviews productId={product.id} />
+
+          {existingLines.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 1.25 }}>
+              <Typography variant="caption" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                <ShoppingCartCheckoutIcon sx={{ fontSize: 15 }} color="primary" />
+                Already in your cart
+              </Typography>
+              {existingLines.map((line) => (
+                <Box key={line.lineId} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">
+                    {formatWeight(line.grams)} × {line.qty}
+                    {line.instructions && (
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                        ({line.instructions})
+                      </Typography>
+                    )}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Typography variant="body2" fontWeight={600}>{formatINR(computeLineTotal(line))}</Typography>
+                    <IconButton size="small" onClick={() => removeItem(line.lineId)} aria-label="Remove from cart">
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Paper>
+          )}
+
+          <Divider />
+
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ flex: '1 1 auto' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                Weight
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={grams}
+                onChange={(_, v) => v && setGrams(v)}
+                disabled={outOfStock}
+              >
+                {WEIGHT_OPTIONS.map((w) => {
+                  const pieces = piecesForGrams(product.name, w.g);
+                  const inCartQty = existingLines.find((l) => l.grams === w.g)?.qty || 0;
+                  return (
+                    <ToggleButton key={w.g} value={w.g} sx={{ px: 1.25, fontWeight: 600, textTransform: 'none' }}>
+                      <Badge
+                        badgeContent={inCartQty}
+                        color="primary"
+                        sx={{ '& .MuiBadge-badge': { top: -8, right: -8 } }}
+                      >
+                        {w.label}{pieces ? ` (~${pieces})` : ''}
+                      </Badge>
+                    </ToggleButton>
+                  );
+                })}
+              </ToggleButtonGroup>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                Quantity
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex', alignItems: 'center', border: '1.5px solid', borderColor: 'primary.main',
+                  borderRadius: 2, opacity: outOfStock ? 0.4 : 1, width: 'fit-content',
+                }}
+              >
+                <IconButton size="small" disabled={outOfStock || qty <= 1}
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}>
+                  <RemoveIcon fontSize="small" />
+                </IconButton>
+                <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 700 }}>
+                  {qty}
+                </Typography>
+                <IconButton size="small" disabled={outOfStock}
+                  onClick={() => setQty((q) => q + 1)}>
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </Box>
+          </Box>
+
+          <TextField
+            label="Special instructions (optional)"
+            placeholder="e.g. less sweet, extra crispy…"
+            multiline
+            minRows={1}
+            size="small"
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            disabled={outOfStock}
+            fullWidth
+          />
+
+          <Divider sx={{ borderStyle: 'dashed' }} />
+
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <Box>
-              <Typography variant="subtitle1" fontWeight={700} component="span">
+              <Typography variant="subtitle2" fontWeight={700} component="span">
                 Total
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
@@ -254,7 +239,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             startIcon={<ShoppingCartIcon />}
             disabled={outOfStock}
             onClick={handleAdd}
-            sx={{ py: 1.4, fontWeight: 600, fontSize: '1rem' }}
+            sx={{ py: 1.1, fontWeight: 600 }}
           >
             {outOfStock ? 'Unavailable' : 'Add to Cart'}
           </Button>
