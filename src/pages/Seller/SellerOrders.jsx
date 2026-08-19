@@ -11,6 +11,7 @@ import { orderWasEdited } from '../../lib/orderDiff';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import OrderStatusActions from '../../components/OrderStatusActions';
+import TrackingStatus from '../../components/TrackingStatus';
 
 // storeOverride lets an FDM (or admin) run a specific assigned store; sellers
 // leave it undefined and their own owned store is looked up.
@@ -62,6 +63,8 @@ export default function SellerOrders({ storeOverride }) {
             <Typography variant="body2" color="text.secondary">
               Your net: {formatINR(o.sellerNetAmount)} (commission {formatINR(o.commissionAmount)})
             </Typography>
+
+            <TrackingStatus order={o} canRefresh={canManageStatus} onChanged={() => load(store)} />
 
             {canManageStatus && (
               <Box sx={{ mt: 2 }}>

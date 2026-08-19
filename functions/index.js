@@ -8,6 +8,7 @@
 //   2. onOrderStatusEmail(order updated) -> the customer, whenever status changes
 //                                            (accepted / shipped / delivered / cancelled).
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const logger = require('firebase-functions/logger');
@@ -125,6 +126,7 @@ function customerConfirmation(order, orderId) {
 const STATUS_WORD = {
   accepted: 'accepted',
   shipped: 'shipped',
+  in_transit: 'in transit',
   delivered: 'delivered',
   cancelled: 'cancelled',
   placed: 'received',
@@ -135,7 +137,9 @@ function statusMessage(status, order) {
   switch (status) {
     case 'accepted':
       return `Good news! ${store} has accepted your order and is preparing it.`;
-    case 'shipped': {
+    case 'shipped':
+      return `Your order from ${store} has been shipped and will be handed to the courier shortly.`;
+    case 'in_transit': {
       const s = order.shipment || {};
       const bits = [`Your order from ${store} is on its way.`];
       if (s.courierName) bits.push(`Courier: ${s.courierName}`);
@@ -315,3 +319,53 @@ exports.onOrderStatusEmail = onDocumentUpdated(
     });
   }
 );
+
+// ---- Trigger 3 (callable): refresh live carrier tracking for an order ----
+// Currently MOCKED — there are no UPS Developer API credentials configured
+// yet. Once they exist: bind them with defineSecret('UPS_CLIENT_ID') /
+// defineSecret('UPS_CLIENT_SECRET'), add `secrets: [...]` to the onCall
+// options below, and replace mockUpsTracking() with a real call to UPS's
+// OAuth + Track API (https://developer.ups.com/api/reference#tag/Tracking).
+function mockUpsTracking(trackingNumber) {
+  return {
+    mocked: true,
+    trackingNumber,
+    statusDescription: 'In Transit',
+    statusCode: 'IT',
+    events: [
+      { description: 'Shipment information received by UPS' },
+      { description: 'Package in transit' },
+    ],
+    lastCheckedAt: new Date().toISOString(),
+  };
+}
+
+exports.refreshUpsTracking = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
+
+  const orderId = request.data?.orderId;
+  if (!orderId) throw new HttpsError('invalid-argument', 'orderId is required.');
+
+  const orderRef = admin.firestore().doc(`orders/${orderId}`);
+  const orderSnap = await orderRef.get();
+  if (!orderSnap.exists) throw new HttpsError('not-found', 'Order not found.');
+  const order = orderSnap.data();
+
+  // Only admin, or an FDM assigned to this order's store, may refresh tracking.
+  const callerSnap = await admin.firestore().doc(`users/${request.auth.uid}`).get();
+  const role = callerSnap.data()?.role;
+  let allowed = role === 'admin';
+  if (!allowed && role === 'fdm') {
+    const storeSnap = await admin.firestore().doc(`stores/${order.storeId}`).get();
+    allowed = (storeSnap.data()?.fdmUids || []).includes(request.auth.uid);
+  }
+  if (!allowed) throw new HttpsError('permission-denied', 'Only admin or an assigned FDM may refresh tracking.');
+
+  const trackingNumber = order.shipment?.trackingNumber;
+  if (!trackingNumber) throw new HttpsError('failed-precondition', 'This order has no tracking number yet.');
+
+  const tracking = mockUpsTracking(trackingNumber);
+  await orderRef.update({ 'shipment.upsTracking': tracking });
+  logger.info(`Order ${orderId}: refreshed (mocked) UPS tracking by ${request.auth.uid}`);
+  return tracking;
+});

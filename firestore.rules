@@ -125,6 +125,20 @@ service cloud.firestore {
         || isAdmin()
       );
       allow delete: if isAdmin();
+
+      // Audit trail of who changed the order's status and when — internal
+      // ops visibility only (admin + the store's assigned FDM), never the
+      // customer or the store owner.
+      match /statusLog/{logId} {
+        allow read: if isSignedIn() && (
+          isAdmin()
+          || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
+        );
+        allow create: if isSignedIn() && (
+          isAdmin()
+          || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
+        ) && request.resource.data.changedByUid == request.auth.uid;
+      }
     }
 
     // ---------- reviews (one per product+customer; doc id `${productId}_${uid}`) ----------

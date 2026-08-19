@@ -14,7 +14,8 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from './config';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from './config';
 import { ROLES, STORE_STATUS, PRODUCT_STATUS, ORDER_STATUS, PAYMENT_METHOD } from '../lib/constants';
 import { defaultShippingRates } from '../lib/shipping';
 
@@ -185,6 +186,24 @@ export async function listAllOrders() {
 }
 export async function updateOrder(orderId, data) {
   return updateDoc(doc(db, 'orders', orderId), { ...data, updatedAt: serverTimestamp() });
+}
+
+// Audit trail of order status changes — who changed it and when. Admin/FDM
+// visibility only (enforced by firestore.rules).
+export async function logOrderStatusChange(orderId, entry) {
+  return addDoc(collection(db, 'orders', orderId, 'statusLog'), { ...entry, at: serverTimestamp() });
+}
+export async function listOrderStatusLog(orderId) {
+  const snap = await getDocs(query(collection(db, 'orders', orderId, 'statusLog'), orderBy('at', 'desc')));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Fetches (currently mocked — see functions/index.js) live carrier tracking
+// for an order's shipment and stores it on the order doc server-side.
+const refreshUpsTrackingFn = httpsCallable(functions, 'refreshUpsTracking');
+export async function refreshUpsTracking(orderId) {
+  const res = await refreshUpsTrackingFn({ orderId });
+  return res.data;
 }
 
 /* ---------------- Reviews (one per product+customer, doc id `${productId}_${uid}`) --- */
