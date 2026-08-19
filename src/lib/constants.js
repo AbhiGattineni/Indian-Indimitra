@@ -32,11 +32,14 @@ export const PRODUCT_STATUS = {
   UNLISTED: 'unlisted',
 };
 
-// Order lifecycle: placed -> accepted -> shipped -> delivered (or cancelled).
+// Order lifecycle: placed -> accepted -> shipped -> in_transit -> delivered
+// (or cancelled, branching off placed/accepted). "Shipped" = packed/handed to
+// the courier; moving to "in_transit" is what captures the tracking number.
 export const ORDER_STATUS = {
   PLACED: 'placed',
   ACCEPTED: 'accepted',
   SHIPPED: 'shipped',
+  IN_TRANSIT: 'in_transit',
   DELIVERED: 'delivered',
   CANCELLED: 'cancelled',
 };
@@ -45,8 +48,22 @@ export const ORDER_STATUS_FLOW = [
   ORDER_STATUS.PLACED,
   ORDER_STATUS.ACCEPTED,
   ORDER_STATUS.SHIPPED,
+  ORDER_STATUS.IN_TRANSIT,
   ORDER_STATUS.DELIVERED,
 ];
+
+export const ORDER_STATUS_LABELS = {
+  placed: 'Placed',
+  accepted: 'Accepted',
+  shipped: 'Shipped',
+  in_transit: 'In Transit',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+};
+
+export function orderStatusLabel(status) {
+  return ORDER_STATUS_LABELS[status] || status;
+}
 
 export const PAYMENT_METHOD = {
   COD: 'COD', // stored value kept as 'COD' for data continuity

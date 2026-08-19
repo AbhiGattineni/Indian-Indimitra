@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Divider,
-  CircularProgress, Button, Alert,
+  CircularProgress, Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
@@ -13,6 +13,7 @@ import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import EditOrderDialog from '../../components/EditOrderDialog';
 import RateItemDialog from '../../components/RateItemDialog';
+import TrackingStatus from '../../components/TrackingStatus';
 
 export default function MyOrders() {
   const { user } = useAuthStore();
@@ -68,11 +69,7 @@ export default function MyOrders() {
             <Typography variant="body2">
               Deliver to: {o.shippingAddress?.line}, {o.shippingAddress?.city} — {o.shippingAddress?.pincode}
             </Typography>
-            {o.shipment?.trackingNumber && (
-              <Alert severity="info" sx={{ mt: 1 }}>
-                Shipped via {o.shipment.courierName} · Tracking: {o.shipment.trackingNumber}
-              </Alert>
-            )}
+            <TrackingStatus order={o} canRefresh={false} />
             <Box sx={{ mt: 1 }}>
               <Chip size="small" label={`Payment: ${paymentLabel(o.paymentMethod)}`} />
             </Box>

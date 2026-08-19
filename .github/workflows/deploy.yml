@@ -66,3 +66,17 @@ jobs:
           echo "--- Live site (fetched fresh, cache-busted) ---"
           curl -sS "https://indimitra-95a12.web.app/?cachebust=$(date +%s)" \
             -H "Cache-Control: no-cache" -H "Pragma: no-cache"
+
+      - name: Install functions dependencies
+        run: npm ci --prefix functions
+
+      # Best-effort: hosting/firestore above are the critical path and must
+      # never be blocked by this. Cloud Functions deploys were never wired
+      # into CI before (see functions/index.js's EMAILJS_PRIVATE_KEY secret,
+      # which was only ever set manually) — continue-on-error so a missing
+      # secret here can't fail the whole workflow.
+      - name: Deploy Cloud Functions (best-effort)
+        continue-on-error: true
+        run: npx firebase-tools deploy --only functions --project indimitra-95a12 --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json

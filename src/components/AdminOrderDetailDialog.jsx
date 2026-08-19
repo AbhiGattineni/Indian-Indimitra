@@ -12,6 +12,7 @@ import { printInvoice } from '../lib/invoice';
 import OrderStatusChip from './OrderStatusChip';
 import OrderItemsDiff from './OrderItemsDiff';
 import OrderStatusActions from './OrderStatusActions';
+import TrackingStatus from './TrackingStatus';
 
 function formatTimestamp(ts) {
   const d = ts?.toDate?.();
@@ -94,13 +95,11 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         <Divider sx={{ my: 1 }} />
         <Typography variant="subtitle1" fontWeight={700}>Total: {formatINR(order.total)}</Typography>
 
-        {(order.shipment?.trackingNumber || order.shipment?.courierName) && (
+        {order.shipment?.trackingNumber && (
           <>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" gutterBottom>Shipment</Typography>
-            <Field label="Courier" value={order.shipment?.courierName} />
-            <Field label="Tracking number" value={order.shipment?.trackingNumber} />
-            <Field label="Tracking URL" value={order.shipment?.trackingUrl} />
+            <TrackingStatus order={order} canRefresh onChanged={onChanged} />
           </>
         )}
 
