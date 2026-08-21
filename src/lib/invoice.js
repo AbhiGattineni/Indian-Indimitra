@@ -5,11 +5,7 @@
 // else is on screen.
 import { formatINR, formatWeight, cartWeightKg } from './calculations';
 import { paymentLabel } from './constants';
-
-function formatTimestamp(ts) {
-  const d = ts?.toDate?.();
-  return d ? d.toLocaleString('en-IN') : '—';
-}
+import { formatIST as formatTimestamp } from './datetime';
 
 function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -98,7 +94,7 @@ function buildInvoiceHtml(order, customer) {
 
   <p>Payment method: ${esc(paymentLabel(order.paymentMethod))}</p>
 
-  <div class="footer">Generated ${esc(new Date().toLocaleString('en-IN'))}</div>
+  <div class="footer">Generated ${esc(formatTimestamp(new Date()))}</div>
 </body>
 </html>`;
 }

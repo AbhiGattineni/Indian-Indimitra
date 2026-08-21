@@ -7,11 +7,7 @@ import { useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { refreshUpsTracking } from '../firebase/db';
-
-function formatTimestamp(value) {
-  const d = value?.toDate ? value.toDate() : new Date(value);
-  return Number.isNaN(d?.getTime()) ? '' : d.toLocaleString();
-}
+import { formatIST } from '../lib/datetime';
 
 export default function TrackingStatus({ order, canRefresh, onChanged }) {
   const [loading, setLoading] = useState(false);
@@ -49,7 +45,7 @@ export default function TrackingStatus({ order, canRefresh, onChanged }) {
           Status: <strong>{tracking.statusDescription}</strong>
           {tracking.lastCheckedAt && (
             <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-              (checked {formatTimestamp(tracking.lastCheckedAt)})
+              (checked {formatIST(tracking.lastCheckedAt)})
             </Typography>
           )}
         </Typography>

@@ -13,11 +13,7 @@ import OrderStatusChip from './OrderStatusChip';
 import OrderItemsDiff from './OrderItemsDiff';
 import OrderStatusActions from './OrderStatusActions';
 import TrackingStatus from './TrackingStatus';
-
-function formatTimestamp(ts) {
-  const d = ts?.toDate?.();
-  return d ? d.toLocaleString() : '—';
-}
+import { formatIST } from '../lib/datetime';
 
 function Field({ label, value }) {
   return (
@@ -53,6 +49,19 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
           <Chip size="small" label={`Payment: ${paymentLabel(order.paymentMethod)}`} />
         </Box>
 
+        <Typography variant="subtitle2" gutterBottom>Status</Typography>
+        <OrderStatusActions order={order} onChanged={onChanged} />
+
+        {order.shipment?.trackingNumber && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" gutterBottom>Shipment</Typography>
+            <TrackingStatus order={order} canRefresh onChanged={onChanged} />
+          </>
+        )}
+
+        <Divider sx={{ my: 2 }} />
+
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" gutterBottom>Customer</Typography>
@@ -75,8 +84,8 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
           </Grid>
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" gutterBottom>Timeline</Typography>
-            <Field label="Placed" value={formatTimestamp(order.createdAt)} />
-            <Field label="Last updated" value={formatTimestamp(order.updatedAt)} />
+            <Field label="Placed" value={formatIST(order.createdAt)} />
+            <Field label="Last updated" value={formatIST(order.updatedAt)} />
           </Grid>
         </Grid>
 
@@ -95,14 +104,6 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         <Divider sx={{ my: 1 }} />
         <Typography variant="subtitle1" fontWeight={700}>Total: {formatINR(order.total)}</Typography>
 
-        {order.shipment?.trackingNumber && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" gutterBottom>Shipment</Typography>
-            <TrackingStatus order={order} canRefresh onChanged={onChanged} />
-          </>
-        )}
-
         {order.cancelReason && (
           <>
             <Divider sx={{ my: 2 }} />
@@ -110,10 +111,6 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
             <Field label="Reason" value={order.cancelReason} />
           </>
         )}
-
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle2" gutterBottom>Status</Typography>
-        <OrderStatusActions order={order} onChanged={onChanged} />
       </DialogContent>
       <DialogActions>
         <Button startIcon={<DownloadIcon />} onClick={() => printInvoice(order, customer)}>
