@@ -5,11 +5,7 @@ import { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { listOrderStatusLog } from '../firebase/db';
 import { orderStatusLabel } from '../lib/constants';
-
-function formatTimestamp(ts) {
-  const d = ts?.toDate?.();
-  return d ? d.toLocaleString() : '—';
-}
+import { formatIST } from '../lib/datetime';
 
 export default function OrderStatusLog({ orderId }) {
   const [entries, setEntries] = useState(null);
@@ -29,7 +25,7 @@ export default function OrderStatusLog({ orderId }) {
       </Typography>
       {entries.map((e) => (
         <Typography key={e.id} variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-          {orderStatusLabel(e.status)} by {e.changedByName || e.changedByUid} ({e.changedByRole || 'unknown'}) · {formatTimestamp(e.at)}
+          {orderStatusLabel(e.status)} by {e.changedByName || e.changedByUid} ({e.changedByRole || 'unknown'}) · {formatIST(e.at)}
         </Typography>
       ))}
     </Box>
