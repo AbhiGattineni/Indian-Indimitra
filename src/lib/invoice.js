@@ -88,6 +88,7 @@ function buildInvoiceHtml(order, customer) {
     <tr><td>Subtotal</td><td class="num">${esc(formatINR(order.subtotal))}</td></tr>
     <tr><td>Shipping</td><td class="num">${esc(formatINR(order.shippingFee))}</td></tr>
     <tr><td>Tax</td><td class="num">${esc(formatINR(order.taxAmount))}</td></tr>
+    <tr><td>Margin (platform)</td><td class="num">${esc(formatINR(order.marginAmount))}</td></tr>
     <tr><td>Commission (platform)</td><td class="num">${esc(formatINR(order.commissionAmount))}</td></tr>
     <tr><td>Seller net</td><td class="num">${esc(formatINR(order.sellerNetAmount))}</td></tr>
     <tr class="grand"><td>Total</td><td class="num">${esc(formatINR(order.total))}</td></tr>

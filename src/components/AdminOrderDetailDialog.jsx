@@ -13,6 +13,7 @@ import OrderStatusChip from './OrderStatusChip';
 import OrderItemsDiff from './OrderItemsDiff';
 import OrderStatusActions from './OrderStatusActions';
 import TrackingStatus from './TrackingStatus';
+import OrderFeedbackView from './OrderFeedbackView';
 import { formatIST } from '../lib/datetime';
 
 function Field({ label, value }) {
@@ -51,6 +52,7 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
 
         <Typography variant="subtitle2" gutterBottom>Status</Typography>
         <OrderStatusActions order={order} onChanged={onChanged} />
+        <OrderFeedbackView orderId={order.id} />
 
         {order.shipment?.trackingNumber && (
           <>
@@ -97,10 +99,12 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Totals</Typography>
         <Field label="Total weight (shipment pricing)" value={`${cartWeightKg(order.items).toFixed(2)} kg`} />
-        <Field label="Subtotal" value={formatINR(order.subtotal)} />
+        <Field label="Seller subtotal (seller's own prices)" value={formatINR(order.sellerSubtotal)} />
+        <Field label="Margin (platform)" value={formatINR(order.marginAmount)} />
+        <Field label="Subtotal (customer-facing)" value={formatINR(order.subtotal)} />
         <Field label="Shipping" value={formatINR(order.shippingFee)} />
         <Field label="Tax" value={formatINR(order.taxAmount)} />
-        <Field label="Commission (platform)" value={formatINR(order.commissionAmount)} />
+        <Field label="Commission (platform, on seller subtotal)" value={formatINR(order.commissionAmount)} />
         <Field label="Seller net" value={formatINR(order.sellerNetAmount)} />
         <Divider sx={{ my: 1 }} />
         <Typography variant="subtitle1" fontWeight={700}>Total: {formatINR(order.total)}</Typography>

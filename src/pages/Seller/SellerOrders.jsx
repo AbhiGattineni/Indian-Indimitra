@@ -13,6 +13,7 @@ import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import OrderStatusActions from '../../components/OrderStatusActions';
 import TrackingStatus from '../../components/TrackingStatus';
+import OrderFeedbackView from '../../components/OrderFeedbackView';
 
 // storeOverride lets an FDM (or admin) run a specific assigned store; sellers
 // leave it undefined and their own owned store is looked up.
@@ -68,6 +69,7 @@ export default function SellerOrders({ storeOverride }) {
 
             {canManageStatus && (
               <Box sx={{ mt: 2 }}>
+                <OrderFeedbackView orderId={o.id} />
                 <OrderStatusActions order={o} onChanged={() => load(store)} />
               </Box>
             )}

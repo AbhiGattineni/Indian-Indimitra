@@ -15,6 +15,7 @@ import OrderItemsDiff from '../../components/OrderItemsDiff';
 import EditOrderDialog from '../../components/EditOrderDialog';
 import RateItemDialog from '../../components/RateItemDialog';
 import TrackingStatus from '../../components/TrackingStatus';
+import OrderFeedbackDialog from '../../components/OrderFeedbackDialog';
 
 export default function MyOrders() {
   const { user } = useAuthStore();
@@ -22,6 +23,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [rating, setRating] = useState(null); // { item, storeId }
+  const [feedbackOrder, setFeedbackOrder] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -85,6 +87,9 @@ export default function MyOrders() {
                   Cancel order
                 </Button>
               )}
+              <Button size="small" onClick={() => setFeedbackOrder(o)}>
+                Feedback about this order
+              </Button>
             </Box>
             {o.status === ORDER_STATUS.DELIVERED && (
               <Box sx={{ mt: 1 }}>
@@ -114,6 +119,11 @@ export default function MyOrders() {
         item={rating?.item}
         storeId={rating?.storeId}
         onClose={() => setRating(null)}
+        onSaved={load}
+      />
+      <OrderFeedbackDialog
+        order={feedbackOrder}
+        onClose={() => setFeedbackOrder(null)}
         onSaved={load}
       />
     </Box>

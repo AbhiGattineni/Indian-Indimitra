@@ -53,6 +53,7 @@ export default function AdminOrders() {
             <TableCell>Store</TableCell>
             <TableCell align="right">Weight</TableCell>
             <TableCell align="right">Total</TableCell>
+            <TableCell align="right">Margin</TableCell>
             <TableCell align="right">Commission</TableCell>
             <TableCell>Payment</TableCell>
             <TableCell>Status</TableCell>
@@ -66,6 +67,7 @@ export default function AdminOrders() {
               <TableCell>{o.storeName}</TableCell>
               <TableCell align="right">{cartWeightKg(o.items).toFixed(2)} kg</TableCell>
               <TableCell align="right">{formatINR(o.total)}</TableCell>
+              <TableCell align="right">{formatINR(o.marginAmount)}</TableCell>
               <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
               <TableCell>{paymentLabel(o.paymentMethod)}</TableCell>
               <TableCell>

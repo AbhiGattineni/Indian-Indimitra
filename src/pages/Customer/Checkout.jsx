@@ -12,7 +12,7 @@ import {
   getStore, getPlatformConfig, getShippingRates, createOrder, clearCart as clearCartDoc,
 } from '../../firebase/db';
 import {
-  cartSubtotal, cartWeightKg, lineTotal, shippingFee, taxAmount, commissionAmount, formatINR,
+  cartSubtotal, cartWeightKg, lineTotal, sellerSubtotal, shippingFee, taxAmount, commissionAmount, formatINR,
 } from '../../lib/calculations';
 import { PAYMENT_METHOD } from '../../lib/constants';
 import {
@@ -51,16 +51,18 @@ export default function Checkout() {
   // Shipping is country-aware: India keeps the store's domestic flat/free rule;
   // any other country pays a weight-based estimate so we never absorb shipping.
   const totalKg = cartWeightKg(items);
-  const subtotal = +cartSubtotal(items).toFixed(2);
+  const subtotal = +cartSubtotal(items).toFixed(2); // customer-facing (includes platform margin)
+  const sellerSub = +sellerSubtotal(items).toFixed(2); // seller's own prices — commission basis
+  const margin = +(subtotal - sellerSub).toFixed(2);
   const intl = !isDomestic(country);
   const shipping = intl
     ? internationalShipping(country, totalKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
   const tax = taxAmount(subtotal, config);
-  const commission = commissionAmount(subtotal, config);
+  const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
-  const sellerNet = +(subtotal - commission).toFixed(2);
-  const totals = { subtotal, shipping, tax, commission, total, sellerNet };
+  const sellerNet = +(sellerSub - commission).toFixed(2);
+  const totals = { subtotal, sellerSub, margin, shipping, tax, commission, total, sellerNet };
 
   const placeOrder = async () => {
     setAttempted(true);
@@ -82,6 +84,8 @@ export default function Checkout() {
         storeName,
         items: items.map((i) => ({ ...i, lineTotal: lineTotal(i) })),
         subtotal: totals.subtotal,
+        sellerSubtotal: totals.sellerSub,
+        marginAmount: totals.margin,
         shippingFee: totals.shipping,
         taxAmount: totals.tax,
         commissionAmount: totals.commission,

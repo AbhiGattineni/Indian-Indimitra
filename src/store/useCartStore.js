@@ -2,13 +2,17 @@
 // are per-seller). Switching stores replaces the cart. The same product at a
 // different weight (250 g / 500 g / 1 kg) is a separate line, keyed by lineId.
 import { create } from 'zustand';
+import { customerPricePerKg } from '../lib/calculations';
 
 const lineIdFor = (productId, grams) => `${productId}_${grams}`;
 
 export const useCartStore = create((set, get) => ({
   storeId: null,
   storeName: '',
-  items: [], // { lineId, productId, name, price, grams, qty, imageUrl, instructions }
+  // price = customer-facing per-kg price (seller's price + platform margin);
+  // sellerPrice = the seller's own per-kg price, kept alongside for the
+  // commission/seller-net split at checkout.
+  items: [], // { lineId, productId, name, price, sellerPrice, grams, qty, imageUrl, instructions }
 
   addItem: (storeId, storeName, product, grams = 1000, qty = 1, instructions = '') => {
     const state = get();
@@ -28,7 +32,8 @@ export const useCartStore = create((set, get) => ({
         lineId,
         productId: product.id,
         name: product.name,
-        price: product.price,
+        price: customerPricePerKg(product.price),
+        sellerPrice: product.price,
         grams,
         qty,
         imageUrl: product.imageUrl || '',
