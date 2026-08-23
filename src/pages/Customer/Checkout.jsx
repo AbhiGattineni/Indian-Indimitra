@@ -155,6 +155,23 @@ export default function Checkout() {
                 pincode: parsed.pincode || a.pincode,
               }))}
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={addr.notApartment}
+                  onChange={(e) => {
+                    const notApartment = e.target.checked;
+                    setAddr((a) => ({
+                      ...a,
+                      notApartment,
+                      apartmentName: notApartment ? '' : a.apartmentName,
+                      apartmentNumber: notApartment ? '' : a.apartmentNumber,
+                    }));
+                  }}
+                />
+              }
+              label="Not an apartment"
+            />
             <TextField
               label="Apartment / building name"
               placeholder="e.g. Green Meadows Apartments"
@@ -176,23 +193,6 @@ export default function Checkout() {
               onChange={(e) => setAddr({ ...addr, apartmentNumber: e.target.value })}
               disabled={addr.notApartment}
               fullWidth
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={addr.notApartment}
-                  onChange={(e) => {
-                    const notApartment = e.target.checked;
-                    setAddr((a) => ({
-                      ...a,
-                      notApartment,
-                      apartmentName: notApartment ? '' : a.apartmentName,
-                      apartmentNumber: notApartment ? '' : a.apartmentNumber,
-                    }));
-                  }}
-                />
-              }
-              label="Not an apartment"
             />
             <TextField label="City" value={addr.city}
               onChange={(e) => setAddr({ ...addr, city: e.target.value })} fullWidth />
