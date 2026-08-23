@@ -1,0 +1,34 @@
+name: One-off - Run admin script
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_path:
+        description: 'Path under functions/scripts/ to run, e.g. inspect-products.js'
+        required: true
+      args:
+        description: 'Space-separated arguments to pass to the script'
+        required: false
+        default: ''
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci --prefix functions
+
+      - name: Write service account key
+        run: echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Run script
+        run: node "functions/scripts/${{ inputs.script_path }}" ${{ inputs.args }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
