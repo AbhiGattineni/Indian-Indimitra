@@ -46,6 +46,12 @@ jobs:
           EOF
           node "$RUNNER_TEMP/parse-config.js"
 
+      # Optional — unset until a Google Maps API key is configured, in which
+      # case Checkout falls back to plain manual address entry (see
+      # src/lib/googlePlaces.js). Safe to append even when empty.
+      - name: Load Google Maps API key into env
+        run: echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> "$GITHUB_ENV"
+
       - run: npm run build
 
       - name: Write service account key

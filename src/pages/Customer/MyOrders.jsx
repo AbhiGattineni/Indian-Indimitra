@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
+import { formatAddressLine } from '../../lib/address';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import EditOrderDialog from '../../components/EditOrderDialog';
@@ -67,7 +68,7 @@ export default function MyOrders() {
             <OrderItemsDiff order={o} />
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
-              Deliver to: {o.shippingAddress?.line}, {o.shippingAddress?.city} — {o.shippingAddress?.pincode}
+              Deliver to: {formatAddressLine(o.shippingAddress)}
             </Typography>
             <TrackingStatus order={o} canRefresh={false} />
             <Box sx={{ mt: 1 }}>
