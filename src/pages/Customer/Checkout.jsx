@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem, Link,
+  Checkbox, FormControlLabel,
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -26,7 +27,9 @@ export default function Checkout() {
   const [store, setStore] = useState(null);
   const [config, setConfig] = useState(null);
   const [shippingRates, setShippingRates] = useState(null);
-  const [addr, setAddr] = useState({ line: '', apartmentName: '', city: '', pincode: '', phone: '' });
+  const [addr, setAddr] = useState({
+    line: '', apartmentName: '', apartmentNumber: '', notApartment: false, city: '', pincode: '', phone: '',
+  });
   const [country, setCountry] = useState('US');
   const [placing, setPlacing] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -68,6 +71,10 @@ export default function Checkout() {
     setAttempted(true);
     if (!addr.line || !addr.city || !addr.pincode) {
       setError('Please fill in the full delivery address.');
+      return;
+    }
+    if (!addr.notApartment && !addr.apartmentName.trim()) {
+      setError('Enter the apartment name, or check "Not an apartment".');
       return;
     }
     if (!phoneValid) {
@@ -149,12 +156,43 @@ export default function Checkout() {
               }))}
             />
             <TextField
-              label="Apartment / unit name (optional)"
-              placeholder="e.g. Green Meadows Apt, Flat 4B"
+              label="Apartment / building name"
+              placeholder="e.g. Green Meadows Apartments"
               value={addr.apartmentName}
               onChange={(e) => setAddr({ ...addr, apartmentName: e.target.value })}
-              helperText="Google's address search doesn't reliably capture this — add it here."
+              disabled={addr.notApartment}
+              error={attempted && !addr.notApartment && !addr.apartmentName.trim()}
+              helperText={
+                addr.notApartment
+                  ? undefined
+                  : "Google's address search doesn't reliably capture this — add it here."
+              }
               fullWidth
+            />
+            <TextField
+              label="Apartment / unit number"
+              placeholder="e.g. Flat 4B"
+              value={addr.apartmentNumber}
+              onChange={(e) => setAddr({ ...addr, apartmentNumber: e.target.value })}
+              disabled={addr.notApartment}
+              fullWidth
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={addr.notApartment}
+                  onChange={(e) => {
+                    const notApartment = e.target.checked;
+                    setAddr((a) => ({
+                      ...a,
+                      notApartment,
+                      apartmentName: notApartment ? '' : a.apartmentName,
+                      apartmentNumber: notApartment ? '' : a.apartmentNumber,
+                    }));
+                  }}
+                />
+              }
+              label="Not an apartment"
             />
             <TextField label="City" value={addr.city}
               onChange={(e) => setAddr({ ...addr, city: e.target.value })} fullWidth />

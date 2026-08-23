@@ -74,7 +74,8 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
           </Grid>
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" gutterBottom>Delivery address</Typography>
-            <Field label="Apartment / unit" value={addr.apartmentName} />
+            <Field label="Apartment / building name" value={addr.notApartment ? 'Not an apartment' : addr.apartmentName} />
+            {!addr.notApartment && <Field label="Apartment / unit number" value={addr.apartmentNumber} />}
             <Field label="Address" value={addr.line} />
             <Field label="City" value={addr.city} />
             <Field label={addr.country === 'IN' ? 'Pincode' : 'ZIP / Postal code'} value={addr.pincode} />
