@@ -9,7 +9,7 @@ const admin = require('firebase-admin');
 const crypto = require('crypto');
 const https = require('https');
 
-admin.initializeApp();
+admin.initializeApp({ storageBucket: 'indimitra-95a12.firebasestorage.app' });
 
 const STORE_ID = 'I5kafJCHeU6uVTnilrvT';
 const USER_AGENT = 'IndianIndimitraCatalogBot/1.0 (one-off script; https://www.guestsmenu.com)';
