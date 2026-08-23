@@ -67,7 +67,9 @@ function buildInvoiceHtml(order, customer) {
     </div>
     <div class="box">
       <h2>Ship to</h2>
-      ${addr.apartmentName ? `<p>${esc(addr.apartmentName)}</p>` : ''}
+      ${!addr.notApartment && (addr.apartmentName || addr.apartmentNumber)
+        ? `<p>${esc([addr.apartmentName, addr.apartmentNumber ? `#${addr.apartmentNumber}` : ''].filter(Boolean).join(' '))}</p>`
+        : ''}
       <p>${esc(addr.line)}</p>
       <p>${esc(addr.city)}</p>
       <p>${esc(addr.pincode)}, ${esc(addr.countryName || addr.country)}</p>
