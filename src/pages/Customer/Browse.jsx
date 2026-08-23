@@ -4,7 +4,7 @@ import {
   MenuItem, CircularProgress, Rating,
 } from '@mui/material';
 import { listCategories, listProductsByStore, listReviewsByStore } from '../../firebase/db';
-import { formatINR } from '../../lib/calculations';
+import { formatINR, customerPricePerKg } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
 import { PRODUCT_STATUS } from '../../lib/constants';
 import { ratingsByProduct } from '../../lib/reviews';
@@ -116,7 +116,7 @@ export default function Browse() {
                       {p.name}
                     </Typography>
                     <Typography color="primary" fontWeight={700}>
-                      {formatINR(p.price)}
+                      {formatINR(customerPricePerKg(p.price))}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {p.unit}

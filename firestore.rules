@@ -152,5 +152,22 @@ service cloud.firestore {
         && request.resource.data.rating <= 5;
       allow delete: if isSignedIn() && resource.data.customerUid == request.auth.uid;
     }
+
+    // ---------- order feedback (one per order; doc id = orderId) ----------
+    // "Other issues" feedback, separate from per-product reviews — internal
+    // ops visibility only (admin + the order's store's assigned FDM), same
+    // as the status audit log; never the store owner.
+    match /orderFeedback/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.customerUid == request.auth.uid
+        || isAdmin()
+        || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
+      );
+      allow create, update: if isSignedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid;
+      allow delete: if isSignedIn()
+        && (resource.data.customerUid == request.auth.uid || isAdmin());
+    }
   }
 }

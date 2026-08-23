@@ -12,12 +12,38 @@ export function itemWeightKg(item) {
   return (itemGrams(item) / 1000) * Number(item?.qty || 0);
 }
 
+// item.price is the customer-facing per-kg price (seller's price + the
+// platform margin below) — see MARGIN_PER_KG.
 export function lineTotal(item) {
   return Number(item.price || 0) * itemWeightKg(item);
 }
 
 export function cartSubtotal(items = []) {
   return items.reduce((sum, it) => sum + lineTotal(it), 0);
+}
+
+// Flat platform margin added on top of every seller's per-kg price — scales
+// with weight (₹50 at 250g, ₹100 at 500g, ₹200 at 1kg), applied uniformly
+// across all products/stores. This is separate from (and on top of) the
+// commission below: the seller still sets/receives their own price, the
+// platform keeps the margin as its own line item, and commission is charged
+// against the seller's price, never against the platform's own margin.
+export const MARGIN_PER_KG = 200;
+
+export function customerPricePerKg(sellerPricePerKg) {
+  return Number(sellerPricePerKg || 0) + MARGIN_PER_KG;
+}
+
+// item.sellerPrice is the seller's own per-kg price (pre-margin) — falls
+// back to item.price for legacy cart/order lines saved before this field
+// existed (their margin/commission split just comes out as zero, rather
+// than crashing).
+export function sellerLineTotal(item) {
+  return Number(item.sellerPrice ?? item.price ?? 0) * itemWeightKg(item);
+}
+
+export function sellerSubtotal(items = []) {
+  return items.reduce((sum, it) => sum + sellerLineTotal(it), 0);
 }
 
 // Total package weight (kg) across the cart — drives international shipping.
@@ -47,17 +73,6 @@ export function taxAmount(subtotal, config) {
 export function commissionAmount(subtotal, config) {
   const rate = Number(config?.commissionRate || 0);
   return +(subtotal * rate).toFixed(2);
-}
-
-// Full breakdown used at checkout and stored on the order.
-export function orderTotals(items, store, config) {
-  const subtotal = +cartSubtotal(items).toFixed(2);
-  const shipping = +shippingFee(subtotal, store).toFixed(2);
-  const tax = taxAmount(subtotal, config);
-  const commission = commissionAmount(subtotal, config);
-  const total = +(subtotal + shipping + tax).toFixed(2);
-  const sellerNet = +(subtotal - commission).toFixed(2);
-  return { subtotal, shipping, tax, commission, total, sellerNet };
 }
 
 export function formatINR(amount) {

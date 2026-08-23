@@ -15,7 +15,8 @@ import {
   getStore, getPlatformConfig, getShippingRates, listProductsByStore, updateOrderItems,
 } from '../firebase/db';
 import {
-  lineTotal, cartSubtotal, cartWeightKg, shippingFee, taxAmount, commissionAmount, formatINR, formatWeight,
+  lineTotal, cartSubtotal, cartWeightKg, sellerSubtotal, shippingFee, taxAmount, commissionAmount,
+  customerPricePerKg, formatINR, formatWeight,
 } from '../lib/calculations';
 import { isDomestic, internationalShipping } from '../lib/shipping';
 
@@ -77,8 +78,8 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         return prev.map((it) => (it.lineId === lineId ? { ...it, qty: it.qty + 1 } : it));
       }
       return [...prev, {
-        lineId, productId: p.id, name: p.name, price: p.price, grams, qty: 1,
-        imageUrl: p.imageUrl || '', instructions: '',
+        lineId, productId: p.id, name: p.name, price: customerPricePerKg(p.price), sellerPrice: p.price,
+        grams, qty: 1, imageUrl: p.imageUrl || '', instructions: '',
       }];
     });
     setAddProductId('');
@@ -87,15 +88,17 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const country = order.shippingAddress?.country || 'IN';
   const withTotals = items.map((it) => ({ ...it, lineTotal: lineTotal(it) }));
   const subtotal = +cartSubtotal(withTotals).toFixed(2);
+  const sellerSub = +sellerSubtotal(withTotals).toFixed(2);
+  const margin = +(subtotal - sellerSub).toFixed(2);
   const totalKg = cartWeightKg(withTotals);
   const intl = !isDomestic(country);
   const shipping = intl
     ? internationalShipping(country, totalKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
   const tax = taxAmount(subtotal, config);
-  const commission = commissionAmount(subtotal, config);
+  const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
-  const sellerNet = +(subtotal - commission).toFixed(2);
+  const sellerNet = +(sellerSub - commission).toFixed(2);
 
   const addableProducts = products.filter((p) => p.quantity !== 0);
 
@@ -110,6 +113,8 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
       await updateOrderItems(order.id, {
         items: withTotals,
         subtotal,
+        sellerSubtotal: sellerSub,
+        marginAmount: margin,
         shippingFee: shipping,
         taxAmount: tax,
         commissionAmount: commission,
@@ -190,7 +195,7 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
                 onChange={(e) => setAddProductId(e.target.value)} sx={{ flex: 1 }}
               >
                 {addableProducts.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>{p.name} — {formatINR(p.price)}/kg</MenuItem>
+                  <MenuItem key={p.id} value={p.id}>{p.name} — {formatINR(customerPricePerKg(p.price))}/kg</MenuItem>
                 ))}
               </TextField>
               <Button variant="outlined" disabled={!addProductId} onClick={addProduct}>Add</Button>

@@ -226,6 +226,20 @@ export async function deleteReview(id) {
   return deleteDoc(doc(db, 'reviews', id));
 }
 
+/* ---------------- Order feedback (one per order; doc id = orderId; --- */
+/* covers anything other than the items themselves — delivery, service, etc; */
+/* admin/FDM-only visibility, enforced by firestore.rules) --------------- */
+export async function getOrderFeedback(orderId) {
+  const snap = await getDoc(doc(db, 'orderFeedback', orderId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+export async function upsertOrderFeedback(orderId, data) {
+  return setDoc(doc(db, 'orderFeedback', orderId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+export async function deleteOrderFeedback(orderId) {
+  return deleteDoc(doc(db, 'orderFeedback', orderId));
+}
+
 /* ---------------- Addresses (subcollection of user) ---------------- */
 export async function listAddresses(uid) {
   const snap = await getDocs(collection(db, 'users', uid, 'addresses'));

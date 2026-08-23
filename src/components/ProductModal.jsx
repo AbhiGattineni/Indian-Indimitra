@@ -14,7 +14,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import { useCartStore } from '../store/useCartStore';
-import { formatINR, formatWeight, lineTotal as computeLineTotal } from '../lib/calculations';
+import { formatINR, formatWeight, lineTotal as computeLineTotal, customerPricePerKg } from '../lib/calculations';
 import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
 import ProductReviews from './ProductReviews';
@@ -41,7 +41,8 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   if (!product) return null;
 
   const outOfStock = !product.quantity;
-  const unitPrice = product.price * (grams / 1000); // price for the selected weight
+  const displayPricePerKg = customerPricePerKg(product.price);
+  const unitPrice = displayPricePerKg * (grams / 1000); // price for the selected weight
   const lineTotal = unitPrice * qty;
 
   // Existing cart lines for this product (one per weight selected so far) —
@@ -99,7 +100,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             </Typography>
             <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
               <Typography variant="h6" color="primary.main" fontWeight={700} sx={{ lineHeight: 1.25 }}>
-                {formatINR(product.price)}
+                {formatINR(displayPricePerKg)}
               </Typography>
               <Typography variant="caption" color="text.secondary">/ {product.unit}</Typography>
             </Box>
