@@ -8,6 +8,7 @@ import { getStoreByOwner, listOrdersByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { ROLES } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
+import { formatAddressLine } from '../../lib/address';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import OrderStatusActions from '../../components/OrderStatusActions';
@@ -57,8 +58,7 @@ export default function SellerOrders({ storeOverride }) {
             <OrderItemsDiff order={o} />
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
-              Ship to: {o.shippingAddress?.line}, {o.shippingAddress?.city} — {o.shippingAddress?.pincode} ·
-              ☎ {o.shippingAddress?.phone}
+              Ship to: {formatAddressLine(o.shippingAddress)} · ☎ {o.shippingAddress?.phone}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Your net: {formatINR(o.sellerNetAmount)} (commission {formatINR(o.commissionAmount)})

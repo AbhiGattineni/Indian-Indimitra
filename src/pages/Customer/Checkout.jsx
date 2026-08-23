@@ -6,6 +6,7 @@ import {
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ShippingRateDialog from '../../components/ShippingRateDialog';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
 import { DEFAULT_USD_INR_RATE } from '../../lib/garudavegaRates';
 import {
   getStore, getPlatformConfig, getShippingRates, createOrder, clearCart as clearCartDoc,
@@ -25,7 +26,7 @@ export default function Checkout() {
   const [store, setStore] = useState(null);
   const [config, setConfig] = useState(null);
   const [shippingRates, setShippingRates] = useState(null);
-  const [addr, setAddr] = useState({ line: '', city: '', pincode: '', phone: '' });
+  const [addr, setAddr] = useState({ line: '', apartmentName: '', city: '', pincode: '', phone: '' });
   const [country, setCountry] = useState('US');
   const [placing, setPlacing] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -131,8 +132,26 @@ export default function Checkout() {
                 <MenuItem key={c.code} value={c.code}>{c.name}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Address line" value={addr.line}
-              onChange={(e) => setAddr({ ...addr, line: e.target.value })} fullWidth />
+            <AddressAutocomplete
+              label="Address line"
+              value={addr.line}
+              countryCode={country}
+              onChangeText={(line) => setAddr((a) => ({ ...a, line }))}
+              onSelectPlace={(parsed) => setAddr((a) => ({
+                ...a,
+                line: parsed.line || a.line,
+                city: parsed.city || a.city,
+                pincode: parsed.pincode || a.pincode,
+              }))}
+            />
+            <TextField
+              label="Apartment / unit name (optional)"
+              placeholder="e.g. Green Meadows Apt, Flat 4B"
+              value={addr.apartmentName}
+              onChange={(e) => setAddr({ ...addr, apartmentName: e.target.value })}
+              helperText="Google's address search doesn't reliably capture this — add it here."
+              fullWidth
+            />
             <TextField label="City" value={addr.city}
               onChange={(e) => setAddr({ ...addr, city: e.target.value })} fullWidth />
             <TextField label={intl ? 'ZIP / Postal code' : 'Pincode'} value={addr.pincode}
