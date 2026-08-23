@@ -8,6 +8,11 @@ const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 export const placesEnabled = !!API_KEY;
 
+if (!placesEnabled && typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.warn('Address autocomplete disabled: VITE_GOOGLE_MAPS_API_KEY was not baked into this build.');
+}
+
 export async function autocompleteAddress(input, countryCode) {
   if (!placesEnabled || !input?.trim()) return [];
   try {
@@ -19,13 +24,19 @@ export async function autocompleteAddress(input, countryCode) {
         ...(countryCode ? { includedRegionCodes: [countryCode] } : {}),
       }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn('Places autocomplete failed:', res.status, await res.text().catch(() => ''));
+      return [];
+    }
     const data = await res.json();
     return (data.suggestions || [])
       .map((s) => s.placePrediction)
       .filter(Boolean)
       .map((p) => ({ placeId: p.placeId, text: p.text?.text || '' }));
-  } catch {
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Places autocomplete request errored:', e);
     return [];
   }
 }
@@ -58,10 +69,16 @@ export async function getPlaceAddress(placeId) {
     const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
       headers: { 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': 'addressComponents,formattedAddress' },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn('Place details lookup failed:', res.status, await res.text().catch(() => ''));
+      return null;
+    }
     const place = await res.json();
     return parseAddressComponents(place.addressComponents || []);
-  } catch {
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Place details lookup errored:', e);
     return null;
   }
 }
