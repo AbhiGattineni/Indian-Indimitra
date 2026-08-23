@@ -67,14 +67,34 @@ async function getCommonsImageUrl(fileTitle) {
   return page.imageinfo[0].url;
 }
 
+// The previous run of this script (before the extension-parsing fix below)
+// left malformed object names in Storage — the query string's own dots got
+// picked up as the "extension". Clean those up before re-uploading.
+const STALE_OBJECTS = [
+  'products/I5kafJCHeU6uVTnilrvT/1787465275016_L1jkizS683tKQBC3ZoY4.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465276080_8l2DzqU7jv72gNnrBCgE.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465276614_CVRS5hggLatJHkoqrZxc.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465277068_hj1V8xyU2RrYiHq4o67y.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465277847_PYVSvsDkbcDZlMLE2Edb.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465278468_ZNw3ATTd2lVKF6HgGe2w.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465279223_eKuEfAZWG5k49v0AOWsK.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465279864_aa3l8Bq3KKFK1JUOtNfm.org&utm_campaign=imageinfo&utm_content=original',
+  'products/I5kafJCHeU6uVTnilrvT/1787465280668_nUtrGfdyHQJ01sGGk8hc.org&utm_campaign=imageinfo&utm_content=original',
+];
+
 async function main() {
   const db = admin.firestore();
   const bucket = admin.storage().bucket();
 
+  for (const staleObj of STALE_OBJECTS) {
+    await bucket.file(staleObj).delete({ ignoreNotFound: true });
+  }
+  console.log(`Cleaned up ${STALE_OBJECTS.length} stale object(s) from the previous run.`);
+
   for (const p of PRODUCTS) {
     const sourceUrl = await getCommonsImageUrl(p.file);
     const { buffer, contentType } = await fetchBuffer(sourceUrl);
-    const ext = (sourceUrl.split('.').pop() || 'jpg').split('?')[0].toLowerCase();
+    const ext = (sourceUrl.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
     const storagePath = `products/${STORE_ID}/${Date.now()}_${p.id}.${ext}`;
     const token = crypto.randomUUID();
     await bucket.file(storagePath).save(buffer, {
