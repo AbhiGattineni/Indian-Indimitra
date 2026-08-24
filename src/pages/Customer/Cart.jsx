@@ -1,5 +1,5 @@
 import {
-  Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, IconButton,
+  Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   TextField, Button, Paper,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -30,52 +30,54 @@ export default function Cart() {
         Cart {storeName && `— ${storeName}`}
       </Typography>
       <Paper variant="outlined">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Product</TableCell>
-              <TableCell>Weight</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="center">Qty</TableCell>
-              <TableCell align="right">Total</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {items.map((it) => (
-              <TableRow key={it.lineId}>
-                <TableCell>
-                  {it.name}
-                  {it.instructions && (
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Note: {it.instructions}
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell>{formatWeight(it.grams)}</TableCell>
-                <TableCell align="right">
-                  {formatINR(it.price * ((Number(it.grams) || 1000) / 1000))}
-                </TableCell>
-                <TableCell align="center">
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={it.qty}
-                    onChange={(e) => setQty(it.lineId, Math.max(0, Number(e.target.value)))}
-                    sx={{ width: 70 }}
-                    inputProps={{ min: 0 }}
-                  />
-                </TableCell>
-                <TableCell align="right">{formatINR(lineTotal(it))}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => removeItem(it.lineId)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Product</TableCell>
+                <TableCell>Weight</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="center">Qty</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {items.map((it) => (
+                <TableRow key={it.lineId}>
+                  <TableCell>
+                    {it.name}
+                    {it.instructions && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Note: {it.instructions}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>{formatWeight(it.grams)}</TableCell>
+                  <TableCell align="right">
+                    {formatINR(it.price * ((Number(it.grams) || 1000) / 1000))}
+                  </TableCell>
+                  <TableCell align="center">
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={it.qty}
+                      onChange={(e) => setQty(it.lineId, Math.max(0, Number(e.target.value)))}
+                      sx={{ width: 70 }}
+                      inputProps={{ min: 0 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">{formatINR(lineTotal(it))}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => removeItem(it.lineId)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 3, alignItems: 'center' }}>

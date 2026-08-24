@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableHead, TableRow, IconButton,
+  Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Chip, Button,
   CircularProgress, Alert,
 } from '@mui/material';
@@ -107,32 +107,34 @@ function StoresTab({ stores, onSaved }) {
 
   return (
     <>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Pickup address</TableCell>
-            <TableCell align="right">Flat shipping</TableCell>
-            <TableCell align="right">Free-ship over</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell />
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {stores.map((s) => (
-            <TableRow key={s.id}>
-              <TableCell>{s.name}</TableCell>
-              <TableCell>{s.pickupAddress}</TableCell>
-              <TableCell align="right">{formatINR(s.shippingFlatFee)}</TableCell>
-              <TableCell align="right">{formatINR(s.freeShippingThreshold)}</TableCell>
-              <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
-              <TableCell align="right">
-                <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
-              </TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Pickup address</TableCell>
+              <TableCell align="right">Flat shipping</TableCell>
+              <TableCell align="right">Free-ship over</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {stores.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell>{s.name}</TableCell>
+                <TableCell>{s.pickupAddress}</TableCell>
+                <TableCell align="right">{formatINR(s.shippingFlatFee)}</TableCell>
+                <TableCell align="right">{formatINR(s.freeShippingThreshold)}</TableCell>
+                <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
+                <TableCell align="right">
+                  <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit store</DialogTitle>
@@ -226,39 +228,41 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
 
   return (
     <>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Image</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Store</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell align="right">Stock</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell />
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {products.map((p) => (
-            <TableRow key={p.id}>
-              <TableCell>
-                {p.imageUrl && (
-                  <Box component="img" src={p.imageUrl} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 1 }} />
-                )}
-              </TableCell>
-              <TableCell>{p.name}</TableCell>
-              <TableCell>{storeNameById[p.storeId] || p.storeId}</TableCell>
-              <TableCell align="right">{formatINR(p.price)}</TableCell>
-              <TableCell align="right">{p.quantity} {p.unit}</TableCell>
-              <TableCell><Chip size="small" label={p.status} /></TableCell>
-              <TableCell align="right">
-                <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
-                <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
-              </TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Image</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Store</TableCell>
+              <TableCell align="right">Price</TableCell>
+              <TableCell align="right">Stock</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {products.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell>
+                  {p.imageUrl && (
+                    <Box component="img" src={p.imageUrl} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 1 }} />
+                  )}
+                </TableCell>
+                <TableCell>{p.name}</TableCell>
+                <TableCell>{storeNameById[p.storeId] || p.storeId}</TableCell>
+                <TableCell align="right">{formatINR(p.price)}</TableCell>
+                <TableCell align="right">{p.quantity} {p.unit}</TableCell>
+                <TableCell><Chip size="small" label={p.status} /></TableCell>
+                <TableCell align="right">
+                  <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit product</DialogTitle>

@@ -1,6 +1,6 @@
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Table, TableHead,
-  TableBody, TableRow, TableCell, IconButton,
+  TableBody, TableRow, TableCell, IconButton, TableContainer,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { formatINR } from '../lib/calculations';
@@ -21,34 +21,36 @@ export default function ShippingRateDialog({ open, onClose, usdInrRate }) {
           updates and the USD/INR exchange rate; the exact charge is confirmed at checkout.
           Weights are rounded up to the courier&apos;s nearest billable step.
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Weight</TableCell>
-              {SERVICE_TIERS.map((t) => (
-                <TableCell key={t.key} align="right">
-                  {t.label}
-                  <Typography variant="caption" display="block" color="text.secondary">{t.tat}</Typography>
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {GARUDAVEGA_RATE_CARD.map((row) => (
-              <TableRow key={row.weightKg}>
-                <TableCell><strong>{row.weightKg} kg</strong></TableCell>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Weight</TableCell>
                 {SERVICE_TIERS.map((t) => (
                   <TableCell key={t.key} align="right">
-                    {formatINR(row[t.key])}
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {formatUSD(row[t.key], usdInrRate)}
-                    </Typography>
+                    {t.label}
+                    <Typography variant="caption" display="block" color="text.secondary">{t.tat}</Typography>
                   </TableCell>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {GARUDAVEGA_RATE_CARD.map((row) => (
+                <TableRow key={row.weightKg}>
+                  <TableCell><strong>{row.weightKg} kg</strong></TableCell>
+                  {SERVICE_TIERS.map((t) => (
+                    <TableCell key={t.key} align="right">
+                      {formatINR(row[t.key])}
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {formatUSD(row[t.key], usdInrRate)}
+                      </Typography>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
           USD shown at ₹{usdInrRate}/$1 (approximate, admin-adjustable) — the order is always
           charged and settled in INR.

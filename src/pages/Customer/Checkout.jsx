@@ -215,7 +215,7 @@ export default function Checkout() {
           </Stack>
         </Paper>
 
-        <Paper sx={{ p: 3, width: 320 }}>
+        <Paper sx={{ p: 3, width: 320, maxWidth: '100%' }}>
           <Typography variant="h6" gutterBottom>
             Order summary
           </Typography>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton,
+  Box, Typography, Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Chip,
   CircularProgress, Alert,
 } from '@mui/material';
@@ -93,31 +93,33 @@ export default function SellerListings({ storeOverride }) {
         <Button variant="contained" onClick={openNew}>Add listing</Button>
       </Box>
 
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell align="right">Stock</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell />
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {products.map((p) => (
-            <TableRow key={p.id}>
-              <TableCell>{p.name}</TableCell>
-              <TableCell align="right">{formatINR(p.price)}</TableCell>
-              <TableCell align="right">{p.quantity} {p.unit}</TableCell>
-              <TableCell><Chip size="small" label={p.status} /></TableCell>
-              <TableCell align="right">
-                <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
-                <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
-              </TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell align="right">Price</TableCell>
+              <TableCell align="right">Stock</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {products.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell>{p.name}</TableCell>
+                <TableCell align="right">{formatINR(p.price)}</TableCell>
+                <TableCell align="right">{p.quantity} {p.unit}</TableCell>
+                <TableCell><Chip size="small" label={p.status} /></TableCell>
+                <TableCell align="right">
+                  <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit listing' : 'Add listing'}</DialogTitle>

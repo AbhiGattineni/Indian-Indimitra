@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Paper, TextField, Button, Stack, Alert, MenuItem, Table, TableHead,
+  Box, Typography, Paper, TextField, Button, Stack, Alert, MenuItem, Table, TableHead, TableContainer,
   TableBody, TableRow, TableCell, IconButton, Tabs, Tab,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -128,50 +128,52 @@ export default function ShippingRates() {
           ))}
         </Tabs>
 
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Mode</TableCell>
-              <TableCell>Up to (kg)</TableCell>
-              <TableCell>Amount (₹)</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {bands.map((b, i) => (
-              <TableRow key={i}>
-                <TableCell sx={{ minWidth: 220 }}>
-                  <TextField
-                    select size="small" fullWidth value={b.mode}
-                    onChange={(e) => updateBand(i, { mode: e.target.value })}
-                  >
-                    {Object.entries(MODE_LABELS).map(([v, label]) => (
-                      <MenuItem key={v} value={v}>{label}</MenuItem>
-                    ))}
-                  </TextField>
-                </TableCell>
-                <TableCell sx={{ width: 140 }}>
-                  <TextField
-                    size="small" type="number" fullWidth
-                    value={b.mode === 'perKgTotal' ? '' : b.uptoKg}
-                    placeholder={b.mode === 'perKgTotal' ? '∞' : ''}
-                    disabled={b.mode === 'perKgTotal'}
-                    onChange={(e) => updateBand(i, { uptoKg: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell sx={{ width: 140 }}>
-                  <TextField
-                    size="small" type="number" fullWidth value={b.amount}
-                    onChange={(e) => updateBand(i, { amount: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell sx={{ width: 48 }}>
-                  <IconButton size="small" onClick={() => removeBand(i)}><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Mode</TableCell>
+                <TableCell>Up to (kg)</TableCell>
+                <TableCell>Amount (₹)</TableCell>
+                <TableCell />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {bands.map((b, i) => (
+                <TableRow key={i}>
+                  <TableCell sx={{ minWidth: 220 }}>
+                    <TextField
+                      select size="small" fullWidth value={b.mode}
+                      onChange={(e) => updateBand(i, { mode: e.target.value })}
+                    >
+                      {Object.entries(MODE_LABELS).map(([v, label]) => (
+                        <MenuItem key={v} value={v}>{label}</MenuItem>
+                      ))}
+                    </TextField>
+                  </TableCell>
+                  <TableCell sx={{ width: 140 }}>
+                    <TextField
+                      size="small" type="number" fullWidth
+                      value={b.mode === 'perKgTotal' ? '' : b.uptoKg}
+                      placeholder={b.mode === 'perKgTotal' ? '∞' : ''}
+                      disabled={b.mode === 'perKgTotal'}
+                      onChange={(e) => updateBand(i, { uptoKg: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ width: 140 }}>
+                    <TextField
+                      size="small" type="number" fullWidth value={b.amount}
+                      onChange={(e) => updateBand(i, { amount: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ width: 48 }}>
+                    <IconButton size="small" onClick={() => removeBand(i)}><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
         <Button startIcon={<AddIcon />} onClick={addBand} sx={{ mt: 1 }}>Add band</Button>
       </Paper>
 
