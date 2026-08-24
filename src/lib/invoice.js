@@ -13,7 +13,7 @@ function esc(v) {
   }[c]));
 }
 
-function buildInvoiceHtml(order, customer) {
+function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = {}) {
   const addr = order.shippingAddress || {};
   const items = order.items || [];
   const rows = items.map((it) => `
@@ -90,9 +90,10 @@ function buildInvoiceHtml(order, customer) {
     <tr><td>Subtotal</td><td class="num">${esc(formatINR(order.subtotal))}</td></tr>
     <tr><td>Shipping</td><td class="num">${esc(formatINR(order.shippingFee))}</td></tr>
     <tr><td>Tax</td><td class="num">${esc(formatINR(order.taxAmount))}</td></tr>
+    ${includeSellerFinancials ? `
     <tr><td>Margin (platform)</td><td class="num">${esc(formatINR(order.marginAmount))}</td></tr>
     <tr><td>Commission (platform)</td><td class="num">${esc(formatINR(order.commissionAmount))}</td></tr>
-    <tr><td>Seller net</td><td class="num">${esc(formatINR(order.sellerNetAmount))}</td></tr>
+    <tr><td>Seller net</td><td class="num">${esc(formatINR(order.sellerNetAmount))}</td></tr>` : ''}
     <tr class="grand"><td>Total</td><td class="num">${esc(formatINR(order.total))}</td></tr>
   </table>
 
@@ -103,8 +104,7 @@ function buildInvoiceHtml(order, customer) {
 </html>`;
 }
 
-export function printInvoice(order, customer) {
-  const html = buildInvoiceHtml(order, customer);
+function openInvoiceWindow(html) {
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
@@ -115,4 +115,16 @@ export function printInvoice(order, customer) {
     });
     win.addEventListener('afterprint', () => URL.revokeObjectURL(url));
   }
+}
+
+// Admin/seller-facing invoice — includes platform margin, commission, and
+// seller-net figures.
+export function printInvoice(order, customer) {
+  openInvoiceWindow(buildInvoiceHtml(order, customer));
+}
+
+// Customer-facing invoice — omits platform margin/commission/seller-net,
+// which are internal figures the customer shouldn't see.
+export function printCustomerInvoice(order, customer) {
+  openInvoiceWindow(buildInvoiceHtml(order, customer, { includeSellerFinancials: false }));
 }
