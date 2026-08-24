@@ -8,10 +8,16 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useNavigate } from 'react-router-dom';
 import { useStoreSelection } from '../store/useStoreSelection';
+import { useAuthStore } from '../store/useAuthStore';
+import { ROLES } from '../lib/constants';
 
 export default function StoreSwitcherModal({ open, onClose }) {
   const { stores, selectedStore, setStore } = useStoreSelection();
+  const { profile } = useAuthStore();
   const navigate = useNavigate();
+
+  const isStaff = profile?.role === ROLES.ADMIN || profile?.role === ROLES.FDM;
+  const visibleStores = isStaff ? stores : stores.filter((s) => !s.internal);
 
   const choose = (store) => {
     setStore(store);
@@ -32,11 +38,11 @@ export default function StoreSwitcherModal({ open, onClose }) {
         </Typography>
       </DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
-        {stores.length === 0 ? (
+        {visibleStores.length === 0 ? (
           <Typography color="text.secondary">No businesses available yet.</Typography>
         ) : (
           <Stack spacing={1.25}>
-            {stores.map((s) => {
+            {visibleStores.map((s) => {
               const active = s.id === selectedStore?.id;
               return (
                 <Box
@@ -62,7 +68,12 @@ export default function StoreSwitcherModal({ open, onClose }) {
                     <StorefrontIcon fontSize="small" />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography fontWeight={600} noWrap>{s.name}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Typography fontWeight={600} noWrap>{s.name}</Typography>
+                      {s.internal && (
+                        <Chip label="Testing" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                      )}
+                    </Box>
                     {s.pickupAddress && (
                       <Typography variant="body2" color="text.secondary" noWrap>
                         {s.pickupAddress}
