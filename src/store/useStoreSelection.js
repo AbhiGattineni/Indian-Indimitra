@@ -14,13 +14,17 @@ export const useStoreSelection = create((set, get) => ({
   loaded: false,
 
   // Load approved stores once and resolve the active one (persisted or first).
+  // `stores` includes internal/testing stores (StoreSwitcherModal filters those
+  // by role) — but the default/fallback pick never lands on one, so a customer
+  // never silently ends up shopping a test store.
   ensureStores: async () => {
     if (get().loaded || get().loading) return;
     set({ loading: true });
     try {
       const stores = await listStores(STORE_STATUS.APPROVED);
       const savedId = localStorage.getItem(LS_KEY);
-      const current = stores.find((s) => s.id === savedId) || stores[0] || null;
+      const selectable = stores.filter((s) => !s.internal);
+      const current = stores.find((s) => s.id === savedId) || selectable[0] || null;
       if (current) localStorage.setItem(LS_KEY, current.id);
       set({ stores, selectedStore: current, loaded: true, loading: false });
     } catch (e) {
