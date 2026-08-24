@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Select, MenuItem,
+  Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Select, MenuItem, TableContainer,
   CircularProgress, Chip, Stack, Dialog, DialogTitle, DialogContent, DialogActions,
   FormGroup, FormControlLabel, Checkbox, Button, Alert,
 } from '@mui/material';
@@ -85,48 +85,50 @@ export default function Users() {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>Users & roles</Typography>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Email</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Role</TableCell>
-            <TableCell>Assigned stores</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {users.map((u) => {
-            const assigned = u.role === ROLES.FDM ? storesForFdm(u.id) : [];
-            return (
-              <TableRow key={u.id}>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>{u.displayName}</TableCell>
-                <TableCell>
-                  <Select size="small" value={u.role}
-                    onChange={(e) => changeRole(u, e.target.value)}>
-                    {Object.values(ROLES).map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {u.role === ROLES.FDM ? (
-                    assigned.length === 0 ? (
-                      <Typography variant="caption" color="warning.main">None — assign stores</Typography>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Email</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Role</TableCell>
+              <TableCell>Assigned stores</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.map((u) => {
+              const assigned = u.role === ROLES.FDM ? storesForFdm(u.id) : [];
+              return (
+                <TableRow key={u.id}>
+                  <TableCell>{u.email}</TableCell>
+                  <TableCell>{u.displayName}</TableCell>
+                  <TableCell>
+                    <Select size="small" value={u.role}
+                      onChange={(e) => changeRole(u, e.target.value)}>
+                      {Object.values(ROLES).map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    {u.role === ROLES.FDM ? (
+                      assigned.length === 0 ? (
+                        <Typography variant="caption" color="warning.main">None — assign stores</Typography>
+                      ) : (
+                        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                          {assigned.map((s) => (
+                            <Chip key={s.id} size="small" icon={<StorefrontIcon />} label={s.name} />
+                          ))}
+                        </Stack>
+                      )
                     ) : (
-                      <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-                        {assigned.map((s) => (
-                          <Chip key={s.id} size="small" icon={<StorefrontIcon />} label={s.name} />
-                        ))}
-                      </Stack>
-                    )
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">—</Typography>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       {/* Pick which stores this FDM manages (required to promote to FDM). */}
       <Dialog open={!!assign} onClose={() => { setAssign(null); load(); }} fullWidth maxWidth="xs">

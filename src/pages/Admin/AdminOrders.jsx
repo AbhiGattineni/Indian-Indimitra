@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, MenuItem, TextField,
-  CircularProgress, Chip,
+  CircularProgress, Chip, TableContainer,
 } from '@mui/material';
 import { listAllOrders } from '../../firebase/db';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
@@ -45,43 +45,45 @@ export default function AdminOrders() {
           {Object.values(ORDER_STATUS).map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
       </Box>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Order</TableCell>
-            <TableCell>Customer</TableCell>
-            <TableCell>Store</TableCell>
-            <TableCell align="right">Weight</TableCell>
-            <TableCell align="right">Total</TableCell>
-            <TableCell align="right">Margin</TableCell>
-            <TableCell align="right">Commission</TableCell>
-            <TableCell>Payment</TableCell>
-            <TableCell>Status</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {shown.map((o) => (
-            <TableRow key={o.id} hover onClick={() => setSelected(o)} sx={{ cursor: 'pointer' }}>
-              <TableCell>#{o.id.slice(0, 6)}</TableCell>
-              <TableCell>{o.customerEmail}</TableCell>
-              <TableCell>{o.storeName}</TableCell>
-              <TableCell align="right">{cartWeightKg(o.items).toFixed(2)} kg</TableCell>
-              <TableCell align="right">{formatINR(o.total)}</TableCell>
-              <TableCell align="right">{formatINR(o.marginAmount)}</TableCell>
-              <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
-              <TableCell>{paymentLabel(o.paymentMethod)}</TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                  <OrderStatusChip status={o.status} />
-                  {orderWasEdited(o.originalItems, o.items) && (
-                    <Chip size="small" label="Edited" color="warning" variant="outlined" />
-                  )}
-                </Box>
-              </TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Order</TableCell>
+              <TableCell>Customer</TableCell>
+              <TableCell>Store</TableCell>
+              <TableCell align="right">Weight</TableCell>
+              <TableCell align="right">Total</TableCell>
+              <TableCell align="right">Margin</TableCell>
+              <TableCell align="right">Commission</TableCell>
+              <TableCell>Payment</TableCell>
+              <TableCell>Status</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {shown.map((o) => (
+              <TableRow key={o.id} hover onClick={() => setSelected(o)} sx={{ cursor: 'pointer' }}>
+                <TableCell>#{o.id.slice(0, 6)}</TableCell>
+                <TableCell>{o.customerEmail}</TableCell>
+                <TableCell>{o.storeName}</TableCell>
+                <TableCell align="right">{cartWeightKg(o.items).toFixed(2)} kg</TableCell>
+                <TableCell align="right">{formatINR(o.total)}</TableCell>
+                <TableCell align="right">{formatINR(o.marginAmount)}</TableCell>
+                <TableCell align="right">{formatINR(o.commissionAmount)}</TableCell>
+                <TableCell>{paymentLabel(o.paymentMethod)}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                    <OrderStatusChip status={o.status} />
+                    {orderWasEdited(o.originalItems, o.items) && (
+                      <Chip size="small" label="Edited" color="warning" variant="outlined" />
+                    )}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <AdminOrderDetailDialog order={selected} onClose={() => setSelected(null)} onChanged={handleChanged} />
     </Box>
   );
