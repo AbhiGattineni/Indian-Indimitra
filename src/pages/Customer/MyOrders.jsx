@@ -4,12 +4,14 @@ import {
   CircularProgress, Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DownloadIcon from '@mui/icons-material/Download';
 import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
 import { formatAddressLine } from '../../lib/address';
+import { printCustomerInvoice } from '../../lib/invoice';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import EditOrderDialog from '../../components/EditOrderDialog';
@@ -18,7 +20,7 @@ import TrackingStatus from '../../components/TrackingStatus';
 import OrderFeedbackDialog from '../../components/OrderFeedbackDialog';
 
 export default function MyOrders() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -89,6 +91,9 @@ export default function MyOrders() {
               )}
               <Button size="small" onClick={() => setFeedbackOrder(o)}>
                 Feedback about this order
+              </Button>
+              <Button size="small" startIcon={<DownloadIcon />} onClick={() => printCustomerInvoice(o, profile)}>
+                Invoice
               </Button>
             </Box>
             {o.status === ORDER_STATUS.DELIVERED && (
