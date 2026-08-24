@@ -4,7 +4,7 @@ import {
   IconButton, Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import DownloadIcon from '@mui/icons-material/Download';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { getUserProfile } from '../firebase/db';
 import { formatINR, cartWeightKg } from '../lib/calculations';
 import { paymentLabel } from '../lib/constants';
@@ -119,8 +119,8 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         )}
       </DialogContent>
       <DialogActions>
-        <Button startIcon={<DownloadIcon />} onClick={() => printInvoice(order, customer)}>
-          Download invoice
+        <Button startIcon={<ReceiptLongIcon />} onClick={() => printInvoice(order, customer)}>
+          View invoice
         </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>

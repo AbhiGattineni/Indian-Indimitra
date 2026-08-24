@@ -1,8 +1,9 @@
-// Opens a clean, print-formatted invoice for an order in a new tab so an
-// admin can "Save as PDF" (or print) it to send to the seller. Built as a
-// standalone HTML document (own styles, no app CSS/dependencies) rather than
-// printing the live page, so the layout stays predictable regardless of what
-// else is on screen.
+// Opens a clean, print-formatted invoice for an order in a new tab as a
+// preview — a "Download" button in that tab triggers the browser's print
+// dialog ("Save as PDF") on demand, rather than firing it immediately. Built
+// as a standalone HTML document (own styles, no app CSS/dependencies) rather
+// than printing the live page, so the layout stays predictable regardless of
+// what else is on screen.
 import { formatINR, formatWeight, cartWeightKg } from './calculations';
 import { paymentLabel } from './constants';
 import { formatIST as formatTimestamp } from './datetime';
@@ -46,10 +47,25 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
   .totals tr td { border: none; padding: 4px 6px; }
   .totals tr.grand td { border-top: 2px solid #222; font-weight: 700; font-size: 16px; }
   .footer { margin-top: 32px; color: #999; font-size: 12px; }
-  @media print { body { margin: 15mm; } }
+  .toolbar {
+    display: flex; justify-content: flex-end; margin-bottom: 20px;
+  }
+  .toolbar button {
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: #222; color: #fff; border: none; border-radius: 6px;
+    padding: 10px 18px;
+  }
+  .toolbar button:hover { background: #444; }
+  @media print {
+    body { margin: 15mm; }
+    .toolbar { display: none; }
+  }
 </style>
 </head>
 <body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Download</button>
+  </div>
   <h1>INVOICE</h1>
   <p class="sub">Order #${esc(order.id.slice(0, 6))} &middot; Placed ${esc(formatTimestamp(order.createdAt))} &middot; Status: ${esc(order.status)}</p>
 
@@ -109,11 +125,8 @@ function openInvoiceWindow(html) {
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if (win) {
-    win.addEventListener('load', () => {
-      win.focus();
-      win.print();
-    });
-    win.addEventListener('afterprint', () => URL.revokeObjectURL(url));
+    win.addEventListener('load', () => win.focus());
+    win.addEventListener('unload', () => URL.revokeObjectURL(url));
   }
 }
 
