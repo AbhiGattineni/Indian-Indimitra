@@ -4,7 +4,7 @@ import {
   CircularProgress, Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DownloadIcon from '@mui/icons-material/Download';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
@@ -92,8 +92,8 @@ export default function MyOrders() {
               <Button size="small" onClick={() => setFeedbackOrder(o)}>
                 Feedback about this order
               </Button>
-              <Button size="small" startIcon={<DownloadIcon />} onClick={() => printCustomerInvoice(o, profile)}>
-                Invoice
+              <Button size="small" startIcon={<ReceiptLongIcon />} onClick={() => printCustomerInvoice(o, profile)}>
+                View invoice
               </Button>
             </Box>
             {o.status === ORDER_STATUS.DELIVERED && (
