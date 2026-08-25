@@ -18,6 +18,7 @@ import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import StarIcon from '@mui/icons-material/Star';
 
 const DRAWER_WIDTH = 240;
 
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: 'All Orders', to: '/admin/orders', icon: ReceiptLongIcon },
   { label: 'Categories', to: '/admin/categories', icon: CategoryIcon },
   { label: 'Stores & Products', to: '/admin/catalog', icon: Inventory2Icon },
+  { label: 'Reviews', to: '/admin/reviews', icon: StarIcon },
   { label: 'Users & Roles', to: '/admin/users', icon: PeopleIcon },
   { label: 'Managers', to: '/admin/managers', icon: BusinessCenterIcon },
   { label: 'Platform Config', to: '/admin/config', icon: SettingsIcon },

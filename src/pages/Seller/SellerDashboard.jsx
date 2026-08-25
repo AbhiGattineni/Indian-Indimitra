@@ -64,6 +64,7 @@ export default function SellerDashboard() {
       <Box sx={{ display: 'flex', gap: 2 }}>
         <Button variant="contained" component={Link} to="/seller/listings">Manage listings</Button>
         <Button variant="outlined" component={Link} to="/seller/orders">View orders</Button>
+        <Button variant="outlined" component={Link} to="/seller/reviews">Reviews</Button>
       </Box>
     </Box>
   );

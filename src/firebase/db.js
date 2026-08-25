@@ -211,6 +211,10 @@ export async function getReview(id) {
   const snap = await getDoc(doc(db, 'reviews', id));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
+export async function listAllReviews() {
+  const snap = await getDocs(collection(db, 'reviews'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 export async function listReviewsByProduct(productId) {
   const snap = await getDocs(query(collection(db, 'reviews'), where('productId', '==', productId)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
