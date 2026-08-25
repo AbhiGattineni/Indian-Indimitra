@@ -14,6 +14,7 @@ import { getStore } from '../../firebase/db';
 import { ROLES, STORE_STATUS } from '../../lib/constants';
 import SellerOrders from '../Seller/SellerOrders';
 import SellerListings from '../Seller/SellerListings';
+import SellerReviews from '../Seller/SellerReviews';
 
 export default function FdmManageStore() {
   const { storeId } = useParams();
@@ -83,10 +84,12 @@ export default function FdmManageStore() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
         <Tab label="Orders" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Listings" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Reviews" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {tab === 0 && <SellerOrders storeOverride={store} />}
       {tab === 1 && <SellerListings storeOverride={store} />}
+      {tab === 2 && <SellerReviews storeOverride={store} />}
     </Box>
   );
 }

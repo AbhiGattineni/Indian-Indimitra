@@ -20,6 +20,7 @@ import BecomeSeller from './pages/Customer/BecomeSeller';
 import SellerDashboard from './pages/Seller/SellerDashboard';
 import SellerListings from './pages/Seller/SellerListings';
 import SellerOrders from './pages/Seller/SellerOrders';
+import SellerReviews from './pages/Seller/SellerReviews';
 // FDM (Forward Deployment Manager)
 import FdmDashboard from './pages/Fdm/FdmDashboard';
 import FdmManageStore from './pages/Fdm/FdmManageStore';
@@ -33,6 +34,7 @@ import FdmManagement from './pages/Admin/FdmManagement';
 import PlatformConfig from './pages/Admin/PlatformConfig';
 import ShippingRates from './pages/Admin/ShippingRates';
 import Catalog from './pages/Admin/Catalog';
+import AdminReviews from './pages/Admin/AdminReviews';
 
 export default function App() {
   const initAuthListener = useAuthStore((s) => s.initAuthListener);
@@ -103,6 +105,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/seller/reviews"
+          element={
+            <ProtectedRoute allow={ROLES.SELLER}>
+              <SellerReviews />
+            </ProtectedRoute>
+          }
+        />
 
         {/* FDM — Forward Deployment Manager runs assigned businesses */}
         <Route
@@ -140,6 +150,7 @@ export default function App() {
           <Route path="managers" element={<FdmManagement />} />
           <Route path="config" element={<PlatformConfig />} />
           <Route path="shipping-rates" element={<ShippingRates />} />
+          <Route path="reviews" element={<AdminReviews />} />
         </Route>
       </Routes>
     </Layout>
