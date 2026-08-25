@@ -89,7 +89,7 @@ export default function FdmManageStore() {
 
       {tab === 0 && <SellerOrders storeOverride={store} />}
       {tab === 1 && <SellerListings storeOverride={store} />}
-      {tab === 2 && <SellerReviews storeOverride={store} />}
+      {tab === 2 && <SellerReviews storeOverride={store} showOrderFeedback />}
     </Box>
   );
 }
