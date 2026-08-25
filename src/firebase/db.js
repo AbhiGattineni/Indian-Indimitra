@@ -237,6 +237,12 @@ export async function getOrderFeedback(orderId) {
   const snap = await getDoc(doc(db, 'orderFeedback', orderId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
+// Admin-only in practice (see firestore.rules) — an unfiltered list query,
+// unlike getOrderFeedback(orderId) which FDM can also call per-order.
+export async function listAllOrderFeedback() {
+  const snap = await getDocs(collection(db, 'orderFeedback'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 export async function upsertOrderFeedback(orderId, data) {
   return setDoc(doc(db, 'orderFeedback', orderId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
