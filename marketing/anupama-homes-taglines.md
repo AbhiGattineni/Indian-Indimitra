@@ -12,4 +12,4 @@ each item box, alongside the website QR code.
 
 ## QR code caption
 
-Scan for More Homely Treats → www.guestsmenu.com
+Scan for More Homely Treats → indimitra.com
