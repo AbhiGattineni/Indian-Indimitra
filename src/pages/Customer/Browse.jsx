@@ -3,6 +3,7 @@ import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
   MenuItem, CircularProgress, Rating,
 } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { listCategories, listProductsByStore, listReviewsByStore } from '../../firebase/db';
 import { formatINR, customerPricePerKg } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
@@ -126,6 +127,14 @@ export default function Browse() {
                         <Rating value={ratings[p.id].avg} precision={0.1} readOnly size="small" />
                         <Typography variant="caption" color="text.secondary">
                           ({ratings[p.id].count})
+                        </Typography>
+                      </Box>
+                    )}
+                    {p.warning && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                        <WarningAmberIcon color="error" sx={{ fontSize: 15 }} />
+                        <Typography variant="caption" color="error.main" fontWeight={600}>
+                          {p.warning}
                         </Typography>
                       </Box>
                     )}

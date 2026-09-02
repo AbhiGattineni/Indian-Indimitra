@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import {
-  Box, Grid, Typography, Button, Paper, Chip, CircularProgress, Snackbar,
+  Box, Grid, Typography, Button, Paper, Chip, CircularProgress, Snackbar, Alert,
 } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { db } from '../../firebase/config';
 import { getStore } from '../../firebase/db';
 import { useCartStore } from '../../store/useCartStore';
@@ -69,6 +70,11 @@ export default function ProductPage() {
               / {product.unit}
             </Typography>
           </Typography>
+          {product.warning && (
+            <Alert severity="error" icon={<WarningAmberIcon fontSize="small" />} sx={{ mt: 2 }}>
+              {product.warning}
+            </Alert>
+          )}
           <Typography sx={{ my: 2 }}>{product.description}</Typography>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
