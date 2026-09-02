@@ -179,7 +179,7 @@ function StoresTab({ stores, onSaved }) {
 
 const EMPTY_PRODUCT = {
   name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit', imageUrl: '',
-  status: PRODUCT_STATUS.ACTIVE,
+  status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
 function ProductsTab({ products, categories, storeNameById, onSaved }) {
@@ -211,7 +211,7 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
       await updateProduct(editing.id, {
         name: form.name, description: form.description, categoryId: form.categoryId,
         price: Number(form.price) || 0, quantity: Number(form.quantity) || 0,
-        unit: form.unit, imageUrl: form.imageUrl, status: form.status,
+        unit: form.unit, imageUrl: form.imageUrl, status: form.status, warning: form.warning,
       });
       setOpen(false);
       onSaved();
@@ -289,6 +289,13 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
               <MenuItem value={PRODUCT_STATUS.ACTIVE}>Active</MenuItem>
               <MenuItem value={PRODUCT_STATUS.UNLISTED}>Unlisted</MenuItem>
             </TextField>
+            <TextField
+              label="Warning (optional)"
+              placeholder="e.g. Shelf life: 3 days, including travel."
+              helperText="Shown to customers in red on the product card and detail page."
+              value={form.warning}
+              onChange={(e) => setForm({ ...form, warning: e.target.value })}
+            />
             <Button component="label" variant="outlined" disabled={uploading}>
               {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
               <input hidden type="file" accept="image/*" onChange={handleFile} />

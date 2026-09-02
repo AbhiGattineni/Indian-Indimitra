@@ -15,7 +15,10 @@ import { uploadImage } from '../../firebase/storage';
 import { formatINR } from '../../lib/calculations';
 import { PRODUCT_STATUS } from '../../lib/constants';
 
-const EMPTY = { name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit', imageUrl: '', status: PRODUCT_STATUS.ACTIVE };
+const EMPTY = {
+  name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit', imageUrl: '',
+  status: PRODUCT_STATUS.ACTIVE, warning: '',
+};
 
 // storeOverride lets an FDM (or admin) manage a specific assigned store's
 // listings; sellers leave it undefined and their own store is looked up.
@@ -64,7 +67,7 @@ export default function SellerListings({ storeOverride }) {
       storeId: store.id, ownerUid: user.uid,
       name: form.name, description: form.description, categoryId: form.categoryId,
       price: Number(form.price) || 0, quantity: Number(form.quantity) || 0,
-      unit: form.unit, imageUrl: form.imageUrl, status: form.status,
+      unit: form.unit, imageUrl: form.imageUrl, status: form.status, warning: form.warning,
     };
     try {
       if (editing) await updateProduct(editing.id, payload);
@@ -146,6 +149,13 @@ export default function SellerListings({ storeOverride }) {
               <MenuItem value={PRODUCT_STATUS.ACTIVE}>Active</MenuItem>
               <MenuItem value={PRODUCT_STATUS.UNLISTED}>Unlisted</MenuItem>
             </TextField>
+            <TextField
+              label="Warning (optional)"
+              placeholder="e.g. Shelf life: 3 days, including travel."
+              helperText="Shown to customers in red on the product card and detail page."
+              value={form.warning}
+              onChange={(e) => setForm({ ...form, warning: e.target.value })}
+            />
             <Button component="label" variant="outlined" disabled={uploading}>
               {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
               <input hidden type="file" accept="image/*" onChange={handleFile} />

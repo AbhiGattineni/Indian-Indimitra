@@ -5,9 +5,10 @@
 import { useEffect, useState } from 'react';
 import {
   Dialog, IconButton, Box, Typography, Button, Chip, Divider, Snackbar,
-  ToggleButton, ToggleButtonGroup, TextField, Paper, Badge,
+  ToggleButton, ToggleButtonGroup, TextField, Paper, Badge, Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -112,6 +113,12 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             <Typography variant="caption" color="text.secondary">
               In stock: {product.quantity} {product.unit}
             </Typography>
+          )}
+
+          {product.warning && (
+            <Alert severity="error" icon={<WarningAmberIcon fontSize="small" />} sx={{ py: 0.25 }}>
+              {product.warning}
+            </Alert>
           )}
 
           {product.description && (
