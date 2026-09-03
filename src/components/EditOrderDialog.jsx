@@ -96,9 +96,6 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const shipping = intl
     ? internationalShipping(country, packedKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
-  const packagingFee = intl
-    ? +(shipping - internationalShipping(country, totalKg, shippingRates)).toFixed(2)
-    : 0;
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
@@ -120,7 +117,6 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         sellerSubtotal: sellerSub,
         marginAmount: margin,
         shippingFee: shipping,
-        packagingFee,
         taxAmount: tax,
         commissionAmount: commission,
         sellerNetAmount: sellerNet,
@@ -210,9 +206,9 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
 
             <Row label="Subtotal" value={formatINR(subtotal)} />
             <Row label="Shipping" value={shipping ? formatINR(shipping) : 'Free'} />
-            {packagingFee > 0 && (
+            {intl && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                Includes {formatINR(packagingFee)} packaging (box + materials weight)
+                Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + packaging)
               </Typography>
             )}
             <Row label="Tax" value={formatINR(tax)} />

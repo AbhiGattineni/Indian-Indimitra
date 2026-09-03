@@ -54,9 +54,8 @@ export default function Checkout() {
   // Shipping is country-aware: India keeps the store's domestic flat/free rule;
   // any other country pays a weight-based estimate so we never absorb shipping.
   // The box + packing material travels (and is billed) with the product, so
-  // international shipping is costed on the packed weight, not just the
-  // product weight — packagingFee below is that difference, broken out for
-  // transparency rather than hidden inside a bigger "Shipping" number.
+  // the packaging weight is folded straight into the total weight before
+  // looking up the cost on the rate chart — one weight, one shipping number.
   const totalKg = cartWeightKg(items);
   const packedKg = packedWeightKg(totalKg);
   const subtotal = +cartSubtotal(items).toFixed(2); // customer-facing (includes platform margin)
@@ -66,14 +65,11 @@ export default function Checkout() {
   const shipping = intl
     ? internationalShipping(country, packedKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
-  const packagingFee = intl
-    ? +(shipping - internationalShipping(country, totalKg, shippingRates)).toFixed(2)
-    : 0;
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
   const sellerNet = +(sellerSub - commission).toFixed(2);
-  const totals = { subtotal, sellerSub, margin, shipping, packagingFee, tax, commission, total, sellerNet };
+  const totals = { subtotal, sellerSub, margin, shipping, tax, commission, total, sellerNet };
 
   const placeOrder = async () => {
     setAttempted(true);
@@ -102,7 +98,6 @@ export default function Checkout() {
         sellerSubtotal: totals.sellerSub,
         marginAmount: totals.margin,
         shippingFee: totals.shipping,
-        packagingFee: totals.packagingFee,
         taxAmount: totals.tax,
         commissionAmount: totals.commission,
         sellerNetAmount: totals.sellerNet,
@@ -233,16 +228,11 @@ export default function Checkout() {
             label={intl ? `Shipping to ${countryName(country)}` : 'Shipping'}
             value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
           />
-          {intl && totals.packagingFee > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-              Includes {formatINR(totals.packagingFee)} packaging (box + materials add
-              {' '}~{(packedKg - totalKg).toFixed(1)} kg to the {totalKg.toFixed(2)} kg product weight).
-            </Typography>
-          )}
           {intl && (
             <>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                Billable weight {billableWeight(packedKg)} kg (product + packaging) — shipping charged at cost.
+                Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + packaging) —
+                billed at {billableWeight(packedKg)} kg, shipping charged at cost.
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontStyle: 'italic' }}>
                 {shippingRates?.disclaimer}
