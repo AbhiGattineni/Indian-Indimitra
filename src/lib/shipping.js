@@ -29,6 +29,36 @@ export const SHIPPING_COUNTRIES = [
 
 const MIN_KG = 0.5; // couriers bill a 0.5 kg minimum
 
+// Real packed weight (product + box + packing material) by product-weight
+// tier, from the seller's own packing records — irregular by design (box
+// sizes step up at different points, and a bigger box is proportionally
+// more weight-efficient), not a formula. Beyond 20 kg there's no recorded
+// data yet, so the last tier's overhead is carried forward as a
+// conservative estimate.
+const PACKED_WEIGHT_BY_TIER = {
+  1: 2, 2: 3, 3: 4, 4: 6, 5: 7, 6: 8, 7: 10, 8: 11, 9: 12, 10: 14,
+  11: 15, 12: 16, 13: 17, 14: 18, 15: 19, 16: 21, 17: 22, 18: 23, 19: 24, 20: 25,
+};
+const MAX_PACKING_TIER = 20;
+
+// Extra weight (kg) the box/packing materials add for a product weighing
+// `kg` — looked up by the whole-kg tier it falls into (a 3.2 kg order needs
+// the same box as a 4 kg one).
+export function packagingOverheadKg(kg) {
+  const w = Math.max(0, Number(kg) || 0);
+  if (w === 0) return 0;
+  const tier = Math.min(MAX_PACKING_TIER, Math.max(1, Math.ceil(w)));
+  return PACKED_WEIGHT_BY_TIER[tier] - tier;
+}
+
+// Actual shippable weight once packed — this is what shipping cost should
+// be calculated on, since the box/material weight travels (and is billed)
+// right along with the product.
+export function packedWeightKg(kg) {
+  const w = Math.max(0, Number(kg) || 0);
+  return w + packagingOverheadKg(w);
+}
+
 // Fallback bands: first 1 kg flat, then per-kg add-ons by weight band, then a
 // per-kg-on-the-whole-shipment "bulk" band. Same shape admins edit per country.
 function defaultBands() {
