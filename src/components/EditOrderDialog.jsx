@@ -18,7 +18,7 @@ import {
   lineTotal, cartSubtotal, cartWeightKg, sellerSubtotal, shippingFee, taxAmount, commissionAmount,
   customerPricePerKg, formatINR, formatWeight,
 } from '../lib/calculations';
-import { isDomestic, internationalShipping } from '../lib/shipping';
+import { isDomestic, internationalShipping, packedWeightKg } from '../lib/shipping';
 
 const WEIGHT_OPTIONS = [
   { g: 250, label: '250 g' },
@@ -91,10 +91,14 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const sellerSub = +sellerSubtotal(withTotals).toFixed(2);
   const margin = +(subtotal - sellerSub).toFixed(2);
   const totalKg = cartWeightKg(withTotals);
+  const packedKg = packedWeightKg(totalKg);
   const intl = !isDomestic(country);
   const shipping = intl
-    ? internationalShipping(country, totalKg, shippingRates)
+    ? internationalShipping(country, packedKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
+  const packagingFee = intl
+    ? +(shipping - internationalShipping(country, totalKg, shippingRates)).toFixed(2)
+    : 0;
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
@@ -116,6 +120,7 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         sellerSubtotal: sellerSub,
         marginAmount: margin,
         shippingFee: shipping,
+        packagingFee,
         taxAmount: tax,
         commissionAmount: commission,
         sellerNetAmount: sellerNet,
@@ -205,6 +210,11 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
 
             <Row label="Subtotal" value={formatINR(subtotal)} />
             <Row label="Shipping" value={shipping ? formatINR(shipping) : 'Free'} />
+            {packagingFee > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                Includes {formatINR(packagingFee)} packaging (box + materials weight)
+              </Typography>
+            )}
             <Row label="Tax" value={formatINR(tax)} />
             <Row label="Total" value={formatINR(total)} bold />
 
