@@ -105,7 +105,6 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
     <tr><td>Total weight</td><td class="num">${esc(cartWeightKg(items).toFixed(2))} kg</td></tr>
     <tr><td>Subtotal</td><td class="num">${esc(formatINR(order.subtotal))}</td></tr>
     <tr><td>Shipping</td><td class="num">${esc(formatINR(order.shippingFee))}</td></tr>
-    ${order.packagingFee ? `<tr><td>&nbsp;&nbsp;incl. packaging</td><td class="num">${esc(formatINR(order.packagingFee))}</td></tr>` : ''}
     <tr><td>Tax</td><td class="num">${esc(formatINR(order.taxAmount))}</td></tr>
     ${includeSellerFinancials ? `
     <tr><td>Margin (platform)</td><td class="num">${esc(formatINR(order.marginAmount))}</td></tr>

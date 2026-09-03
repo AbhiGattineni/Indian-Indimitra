@@ -104,9 +104,6 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         <Field label="Margin (platform)" value={formatINR(order.marginAmount)} />
         <Field label="Subtotal (customer-facing)" value={formatINR(order.subtotal)} />
         <Field label="Shipping" value={formatINR(order.shippingFee)} />
-        {!!order.packagingFee && (
-          <Field label="  incl. packaging (box + materials weight)" value={formatINR(order.packagingFee)} />
-        )}
         <Field label="Tax" value={formatINR(order.taxAmount)} />
         <Field label="Commission (platform, on seller subtotal)" value={formatINR(order.commissionAmount)} />
         <Field label="Seller net" value={formatINR(order.sellerNetAmount)} />
