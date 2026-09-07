@@ -70,7 +70,7 @@ export default function FdmManageStore() {
         />
         <Button
           variant="outlined" size="small" startIcon={<OpenInNewIcon />}
-          onClick={() => { setStore(store); navigate('/'); }}
+          onClick={() => { setStore(store); navigate('/delivery'); }}
         >
           Open storefront
         </Button>
