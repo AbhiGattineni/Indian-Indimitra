@@ -139,6 +139,23 @@ service cloud.firestore {
           || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
         ) && request.resource.data.changedByUid == request.auth.uid;
       }
+
+      // Full timestamped history of item edits (who, when, exact
+      // before/after) — unlike statusLog, the order's own customer can read
+      // this too, since it's their order's edit history, not internal ops
+      // data. Anyone allowed to edit the order's items may write an entry.
+      match /itemsEditLog/{logId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid
+          || isAdmin()
+          || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
+        );
+        allow create: if isSignedIn() && request.resource.data.changedByUid == request.auth.uid && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid
+          || isAdmin()
+          || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
+        );
+      }
     }
 
     // ---------- reviews (one per product+customer; doc id `${productId}_${uid}`) ----------

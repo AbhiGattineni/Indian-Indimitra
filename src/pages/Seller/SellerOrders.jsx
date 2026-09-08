@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Accordion, AccordionSummary, AccordionDetails, Divider, CircularProgress, Chip,
+  Box, Typography, Accordion, AccordionSummary, AccordionDetails, Divider, CircularProgress, Chip, Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EditIcon from '@mui/icons-material/Edit';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getStoreByOwner, listOrdersByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
@@ -11,7 +12,9 @@ import { orderWasEdited } from '../../lib/orderDiff';
 import { formatAddressLine } from '../../lib/address';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
+import OrderItemsEditLog from '../../components/OrderItemsEditLog';
 import OrderStatusActions from '../../components/OrderStatusActions';
+import EditOrderDialog from '../../components/EditOrderDialog';
 import TrackingStatus from '../../components/TrackingStatus';
 import OrderFeedbackView from '../../components/OrderFeedbackView';
 
@@ -22,6 +25,7 @@ export default function SellerOrders({ storeOverride }) {
   const [store, setStore] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingOrder, setEditingOrder] = useState(null);
 
   // Only Admin/FDM change order status — after confirming with the customer.
   // A seller viewing their own store's orders gets a read-only list.
@@ -57,6 +61,12 @@ export default function SellerOrders({ storeOverride }) {
           </AccordionSummary>
           <AccordionDetails>
             <OrderItemsDiff order={o} />
+            <OrderItemsEditLog orderId={o.id} />
+            {canManageStatus && (
+              <Button size="small" startIcon={<EditIcon />} sx={{ mt: 1 }} onClick={() => setEditingOrder(o)}>
+                Edit order items
+              </Button>
+            )}
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
               Ship to: {formatAddressLine(o.shippingAddress)} · ☎ {o.shippingAddress?.phone}
@@ -76,6 +86,16 @@ export default function SellerOrders({ storeOverride }) {
           </AccordionDetails>
         </Accordion>
       ))}
+      {editingOrder && (
+        <EditOrderDialog
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSaved={() => {
+            setEditingOrder(null);
+            load(store);
+          }}
+        />
+      )}
     </Box>
   );
 }

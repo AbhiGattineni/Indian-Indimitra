@@ -14,6 +14,7 @@ import { formatAddressLine } from '../../lib/address';
 import { printCustomerInvoice } from '../../lib/invoice';
 import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
+import OrderItemsEditLog from '../../components/OrderItemsEditLog';
 import EditOrderDialog from '../../components/EditOrderDialog';
 import RateItemDialog from '../../components/RateItemDialog';
 import TrackingStatus from '../../components/TrackingStatus';
@@ -70,6 +71,7 @@ export default function MyOrders() {
           </AccordionSummary>
           <AccordionDetails>
             <OrderItemsDiff order={o} />
+            <OrderItemsEditLog orderId={o.id} />
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
               Deliver to: {formatAddressLine(o.shippingAddress)}
