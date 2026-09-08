@@ -163,14 +163,25 @@ export async function createOrder(data) {
   });
 }
 // Customer edits an order's items (and recomputed totals) while it's still
-// `placed` — enforced by firestore.rules. Stamps `editedAt` so the UI knows
-// to show the before/after diff.
+// `placed`, or Admin/FDM edits them at any status to handle an unavailable
+// item — enforced by firestore.rules either way. Stamps `editedAt` so the UI
+// knows to show the before/after diff.
 export async function updateOrderItems(orderId, patch) {
   return updateDoc(doc(db, 'orders', orderId), {
     ...patch,
     editedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+}
+// Full timestamped history of item edits (who, when, exact before/after) —
+// separate from the order's own originalItems/items pair, which only shows
+// the net change since the order was placed, not each individual edit.
+export async function logOrderItemsEdit(orderId, entry) {
+  return addDoc(collection(db, 'orders', orderId, 'itemsEditLog'), { ...entry, at: serverTimestamp() });
+}
+export async function listOrderItemsEditLog(orderId) {
+  const snap = await getDocs(query(collection(db, 'orders', orderId, 'itemsEditLog'), orderBy('at', 'desc')));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 export async function listOrdersByCustomer(uid) {
   const snap = await getDocs(query(collection(db, 'orders'), where('customerUid', '==', uid)));

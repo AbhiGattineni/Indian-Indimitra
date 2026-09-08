@@ -12,11 +12,10 @@ function Was({ children }) {
   return <Box component="span" sx={strike}>{children}</Box>;
 }
 
-export default function OrderItemsDiff({ order }) {
-  const rows = order.originalItems
-    ? diffOrderItems(order.originalItems, order.items || [])
-    : (order.items || []).map((it) => ({ lineId: it.lineId, kind: 'unchanged', before: it, after: it }));
-
+// Shared row renderer — used both for an order's overall as-placed-vs-now
+// diff (below) and for each individual entry in OrderItemsEditLog, which
+// diffs one edit's before/after rather than the order's whole history.
+export function DiffRows({ rows }) {
   return (
     <Box>
       {rows.map((row) => {
@@ -59,4 +58,12 @@ export default function OrderItemsDiff({ order }) {
       })}
     </Box>
   );
+}
+
+export default function OrderItemsDiff({ order }) {
+  const rows = order.originalItems
+    ? diffOrderItems(order.originalItems, order.items || [])
+    : (order.items || []).map((it) => ({ lineId: it.lineId, kind: 'unchanged', before: it, after: it }));
+
+  return <DiffRows rows={rows} />;
 }

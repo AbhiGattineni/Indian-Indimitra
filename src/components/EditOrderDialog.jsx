@@ -1,7 +1,10 @@
 // Lets a customer edit their own order's items while it's still `placed` —
-// once a seller/FDM/admin accepts it, editing is locked (see MyOrders.jsx,
-// which only renders the "Edit order" button for placed orders, and
-// firestore.rules, which independently enforces the same cutoff).
+// once a seller/FDM/admin accepts it, customer editing is locked (see
+// MyOrders.jsx, which only renders the "Edit order" button for placed
+// orders, and firestore.rules, which independently enforces the same
+// cutoff). Admin/FDM reuse this same dialog (from AdminOrderDetailDialog and
+// SellerOrders) to handle an unavailable item — for staff, editing stays
+// open at any order status, not just "placed".
 import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, IconButton,
@@ -12,13 +15,15 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
-  getStore, getPlatformConfig, getShippingRates, listProductsByStore, updateOrderItems,
+  getStore, getPlatformConfig, getShippingRates, listProductsByStore, updateOrderItems, logOrderItemsEdit,
 } from '../firebase/db';
 import {
   lineTotal, cartSubtotal, cartWeightKg, sellerSubtotal, shippingFee, taxAmount, commissionAmount,
   customerPricePerKg, formatINR, formatWeight,
 } from '../lib/calculations';
 import { isDomestic, internationalShipping, packedWeightKg } from '../lib/shipping';
+import { useAuthStore } from '../store/useAuthStore';
+import { ROLES } from '../lib/constants';
 
 const WEIGHT_OPTIONS = [
   { g: 250, label: '250 g' },
@@ -27,6 +32,8 @@ const WEIGHT_OPTIONS = [
 ];
 
 export default function EditOrderDialog({ order, onClose, onSaved }) {
+  const { user, profile } = useAuthStore();
+  const isStaff = profile?.role === ROLES.ADMIN || profile?.role === ROLES.FDM;
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
   const [store, setStore] = useState(null);
@@ -122,6 +129,13 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         sellerNetAmount: sellerNet,
         total,
       });
+      await logOrderItemsEdit(order.id, {
+        changedByUid: user.uid,
+        changedByName: profile?.displayName || user.email || 'Unknown',
+        changedByRole: profile?.role || 'unknown',
+        itemsBefore: order.items,
+        itemsAfter: withTotals,
+      });
       onSaved?.();
       onClose();
     } catch (e) {
@@ -143,8 +157,10 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         ) : (
           <>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              You can edit this order until the store accepts it. Changes will be shown as strike-through
-              next to the new values on the order.
+              {isStaff
+                ? 'Editing as staff — changes are allowed at any order status. Let the customer know what changed.'
+                : 'You can edit this order until the store accepts it.'}
+              {' '}Changes will be shown as strike-through next to the new values on the order.
             </Typography>
 
             {items.map((it) => (

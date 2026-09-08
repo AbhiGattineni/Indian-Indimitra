@@ -5,13 +5,16 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import EditIcon from '@mui/icons-material/Edit';
 import { getUserProfile } from '../firebase/db';
 import { formatINR, cartWeightKg } from '../lib/calculations';
 import { paymentLabel } from '../lib/constants';
 import { printInvoice } from '../lib/invoice';
 import OrderStatusChip from './OrderStatusChip';
 import OrderItemsDiff from './OrderItemsDiff';
+import OrderItemsEditLog from './OrderItemsEditLog';
 import OrderStatusActions from './OrderStatusActions';
+import EditOrderDialog from './EditOrderDialog';
 import TrackingStatus from './TrackingStatus';
 import OrderFeedbackView from './OrderFeedbackView';
 import { formatIST } from '../lib/datetime';
@@ -27,6 +30,7 @@ function Field({ label, value }) {
 
 export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
   const [customer, setCustomer] = useState(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setCustomer(null);
@@ -52,6 +56,14 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
 
         <Typography variant="subtitle2" gutterBottom>Status</Typography>
         <OrderStatusActions order={order} onChanged={onChanged} />
+        <Button
+          size="small"
+          startIcon={<EditIcon />}
+          sx={{ mt: 1 }}
+          onClick={() => setEditing(true)}
+        >
+          Edit order items
+        </Button>
         <OrderFeedbackView orderId={order.id} />
 
         {order.shipment?.trackingNumber && (
@@ -96,6 +108,7 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Items</Typography>
         <OrderItemsDiff order={order} />
+        <OrderItemsEditLog orderId={order.id} />
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Totals</Typography>
@@ -124,6 +137,16 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
         </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
+      {editing && (
+        <EditOrderDialog
+          order={order}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            onChanged?.();
+          }}
+        />
+      )}
     </Dialog>
   );
 }
