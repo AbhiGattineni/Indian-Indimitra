@@ -6,8 +6,9 @@
 import { useMemo, useState } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, TextField, MenuItem, Chip, Table, TableHead,
-  TableBody, TableRow, TableCell, TableContainer, Paper,
+  TableBody, TableRow, TableCell, TableContainer, Paper, Tooltip as MuiTooltip,
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar,
   Legend,
@@ -107,23 +108,39 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
         </TextField>
       </Box>
 
-      {/* Stat cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* Stat cards -- CSS grid (not MUI Grid) so every card gets an equal-width
+          slot and wraps cleanly at any screen size/card count. */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 2,
+          mb: 3,
+        }}
+      >
         <Stat label="Total revenue" value={formatINR(summary.totalRevenue)} />
-        <Stat label="Shipping (charged, at cost)" value={formatINR(summary.shippingRevenue)} />
-        <Stat label="Item margin (₹200/kg markup)" value={formatINR(summary.marginTotal)} />
-        <Stat label="Commission (seller cut)" value={formatINR(summary.commissionTotal)} />
+        <Stat label="Shipping (at cost)" value={formatINR(summary.shippingRevenue)} />
+        <Stat
+          label="Item margin"
+          info="₹200/kg markup, scaled by each item's weight -- ₹50 at 250g, ₹100 at 500g, ₹200 at 1kg."
+          value={formatINR(summary.marginTotal)}
+        />
+        <Stat
+          label="Commission"
+          info="Seller's % cut on top of their own price. Currently 0% unless a rate is set in Platform Config."
+          value={formatINR(summary.commissionTotal)}
+        />
         <Stat label="Paid to sellers" value={formatINR(summary.sellerPayout)} />
         <Stat label="Tax collected" value={formatINR(summary.taxTotal)} />
         <Stat
           label="Total profit"
           value={formatINR(summary.profit)}
-          caption={`Item margin ${formatINR(summary.marginTotal)} + Commission ${formatINR(summary.commissionTotal)}. Shipping is charged at cost — it adds no profit.`}
+          info={`= Item margin ${formatINR(summary.marginTotal)} + Commission ${formatINR(summary.commissionTotal)}. Shipping is charged at cost, so it adds no profit.`}
           highlight
         />
-        <Stat label="Orders (live / cancelled)" value={`${summary.orderCount} / ${summary.cancelledCount}`} />
+        <Stat label="Orders (live/cancelled)" value={`${summary.orderCount} / ${summary.cancelledCount}`} />
         <Stat label="Avg order value" value={formatINR(summary.avgOrderValue)} />
-      </Grid>
+      </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {/* Revenue over time */}
@@ -239,22 +256,27 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
   );
 }
 
-function Stat({ label, value, caption, highlight }) {
+function Stat({ label, value, info, highlight }) {
   return (
-    <Grid item xs={6} sm={4} md={3} lg={4 / 3}>
-      <Card sx={{ height: '100%', ...(highlight && { bgcolor: 'success.main', color: 'success.contrastText' }) }}>
-        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-          <Typography variant="caption" sx={{ opacity: highlight ? 0.9 : undefined }} color={highlight ? undefined : 'text.secondary'}>
+    <Card sx={{ height: '100%', ...(highlight && { bgcolor: 'success.main', color: 'success.contrastText' }) }}>
+      <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography
+            variant="caption"
+            noWrap
+            sx={{ opacity: highlight ? 0.9 : undefined }}
+            color={highlight ? undefined : 'text.secondary'}
+          >
             {label}
           </Typography>
-          <Typography variant="h6" fontWeight={700}>{value}</Typography>
-          {caption && (
-            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85, mt: 0.25 }}>
-              {caption}
-            </Typography>
+          {info && (
+            <MuiTooltip title={info} arrow>
+              <InfoOutlinedIcon sx={{ fontSize: 14, opacity: 0.7, flexShrink: 0 }} />
+            </MuiTooltip>
           )}
-        </CardContent>
-      </Card>
-    </Grid>
+        </Box>
+        <Typography variant="h6" fontWeight={700} noWrap>{value}</Typography>
+      </CardContent>
+    </Card>
   );
 }
