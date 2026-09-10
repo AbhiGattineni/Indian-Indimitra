@@ -53,6 +53,12 @@ export function computeFinancialSummary(orders) {
   const commissionTotal = sum('commissionAmount');
   const sellerPayout = sum('sellerNetAmount');
   const taxTotal = sum('taxAmount');
+  // marginAmount = the flat ₹200/kg markup baked into every item's customer
+  // price at checkout (calculations.js MARGIN_PER_KG), scaled by that item's
+  // own weight -- ₹50 at 250g, ₹100 at 500g, ₹200 at 1kg. commissionAmount is
+  // the separate seller-side % cut, currently 0 unless platformConfig sets a
+  // commission rate. Shipping is charged at cost and deliberately excluded --
+  // packaging/shipping weight contributes no profit.
   const profit = marginTotal + commissionTotal;
   const orderCount = live.length;
   return {
