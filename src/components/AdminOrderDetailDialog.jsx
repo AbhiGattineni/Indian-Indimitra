@@ -19,6 +19,19 @@ import TrackingStatus from './TrackingStatus';
 import OrderFeedbackView from './OrderFeedbackView';
 import { formatIST } from '../lib/datetime';
 
+// addr.whatsappOption is only present on orders placed after the WhatsApp
+// field shipped -- older orders fall back to showing the phone number,
+// same as the app always assumed before this field existed.
+function whatsappDisplay(addr) {
+  if (addr.whatsappOption === 'different') {
+    return addr.whatsappNumber ? `${addr.whatsappCountryCode || ''} ${addr.whatsappNumber}`.trim() : '';
+  }
+  if (addr.whatsappOption === 'none') return 'No WhatsApp';
+  if (!addr.phone) return '';
+  const phone = `${addr.phoneCountryCode || ''} ${addr.phone}`.trim();
+  return `Same as phone (${phone})`;
+}
+
 function Field({ label, value }) {
   return (
     <Box sx={{ mb: 1 }}>
@@ -81,7 +94,8 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
             <Typography variant="subtitle2" gutterBottom>Customer</Typography>
             <Field label="Name" value={customer?.displayName} />
             <Field label="Email" value={order.customerEmail} />
-            <Field label="Phone" value={addr.phone} />
+            <Field label="Phone" value={addr.phone ? `${addr.phoneCountryCode || ''} ${addr.phone}`.trim() : ''} />
+            <Field label="WhatsApp" value={whatsappDisplay(addr)} />
             <Field label="Customer UID" value={order.customerUid} />
           </Grid>
           <Grid item xs={12} sm={6}>
