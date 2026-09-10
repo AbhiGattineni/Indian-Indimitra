@@ -19,7 +19,7 @@ import {
 } from '../../lib/calculations';
 import { PAYMENT_METHOD } from '../../lib/constants';
 import {
-  SHIPPING_COUNTRIES, isDomestic, internationalShipping, countryName, billableWeight, packedWeightKg,
+  SHIPPING_COUNTRIES, isDomestic, internationalShipping, countryName, packedWeightKg,
   SERVICE_TIERS,
 } from '../../lib/shipping';
 
@@ -365,36 +365,29 @@ export default function Checkout() {
           <Typography variant="h6" gutterBottom>
             Order summary
           </Typography>
+          <Row label="Subtotal" value={formatINR(totals.subtotal)} />
           <Row
-            label="Subtotal"
-            value={formatINR(totals.subtotal)}
-            info={`Includes the seller's price plus the platform margin (₹200/kg, scaled by weight): ₹${totals.margin.toFixed(2)} on this order.`}
-          />
-          <Row
-            label={intl ? `Shipping to ${countryName(country)} (${tierLabel})` : 'Shipping'}
-            value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
+            label={intl ? `Shipping to ${countryName(country)} (${tierLabel}) — ${totalKg.toFixed(2)} kg` : 'Shipping'}
+            value={intl ? formatINR(baseShipping) : (totals.shipping ? formatINR(totals.shipping) : 'Free')}
             info={intl && (
               <Box>
-                <Box sx={{ mb: 1 }}>
-                  Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + {(packedKg - totalKg).toFixed(2)} kg packaging)
-                  {' '}— billed at {billableWeight(packedKg)} kg.
-                </Box>
-                {totals.packagingFee > 0 && (
-                  <Box sx={{ mb: 1 }}>
-                    Base shipping (product weight only): {formatINR(baseShipping)}<br />
-                    Extra for packaging weight: {formatINR(totals.packagingFee)}
-                  </Box>
-                )}
-                <Box sx={{ mb: 1, fontStyle: 'italic' }}>
-                  {shippingRates?.disclaimer}
-                  {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
-                </Box>
-                <Link component="button" type="button" onClick={() => setRateChartOpen(true)} sx={{ color: 'inherit' }}>
-                  View full rate chart by weight (₹ / $) →
-                </Link>
+                {shippingRates?.disclaimer}
+                {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
               </Box>
             )}
           />
+          {intl && totals.packagingFee > 0 && (
+            <Row
+              label={`Packaging (+${(packedKg - totalKg).toFixed(2)} kg)`}
+              value={formatINR(totals.packagingFee)}
+            />
+          )}
+          {intl && (
+            <Link component="button" type="button" onClick={() => setRateChartOpen(true)}
+              variant="caption" sx={{ display: 'block', mb: 0.5 }}>
+              View full rate chart by weight (₹ / $) →
+            </Link>
+          )}
           <Row
             label="Tax"
             value={formatINR(totals.tax)}

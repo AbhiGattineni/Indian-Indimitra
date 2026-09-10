@@ -226,28 +226,17 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
 
             <Divider sx={{ my: 2 }} />
 
+            <Row label="Subtotal" value={formatINR(subtotal)} />
             <Row
-              label="Subtotal"
-              value={formatINR(subtotal)}
-              info={`Includes the seller's price plus the platform margin (₹200/kg, scaled by weight): ₹${margin.toFixed(2)} on this order.`}
+              label={intl ? `Shipping — ${totalKg.toFixed(2)} kg` : 'Shipping'}
+              value={intl ? formatINR(baseShipping) : (shipping ? formatINR(shipping) : 'Free')}
             />
-            <Row
-              label="Shipping"
-              value={shipping ? formatINR(shipping) : 'Free'}
-              info={intl && (
-                <Box>
-                  <Box sx={{ mb: 1 }}>
-                    Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + {(packedKg - totalKg).toFixed(2)} kg packaging).
-                  </Box>
-                  {packagingFee > 0 && (
-                    <Box>
-                      Base shipping (product weight only): {formatINR(baseShipping)}<br />
-                      Extra for packaging weight: {formatINR(packagingFee)}
-                    </Box>
-                  )}
-                </Box>
-              )}
-            />
+            {intl && packagingFee > 0 && (
+              <Row
+                label={`Packaging (+${(packedKg - totalKg).toFixed(2)} kg)`}
+                value={formatINR(packagingFee)}
+              />
+            )}
             <Row
               label="Tax"
               value={formatINR(tax)}
