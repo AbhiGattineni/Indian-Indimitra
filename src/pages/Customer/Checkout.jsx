@@ -46,10 +46,11 @@ export default function Checkout() {
   const [rateChartOpen, setRateChartOpen] = useState(false);
   const [phoneCountry, setPhoneCountry] = useState('US');
 
-  // WhatsApp: 'same' as phone (default -- no extra input needed), 'different'
-  // (a distinct WhatsApp number, required once chosen), or 'none' (no
-  // WhatsApp at all -- also no extra input needed).
-  const [whatsappOption, setWhatsappOption] = useState('same');
+  // WhatsApp: no default -- the customer must explicitly pick one of
+  // 'same' as phone (no extra input needed), 'different' (a distinct
+  // WhatsApp number, required once chosen), or 'none' (no WhatsApp at all,
+  // also no extra input needed).
+  const [whatsappOption, setWhatsappOption] = useState('');
   const [whatsappCountry, setWhatsappCountry] = useState('US');
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
@@ -63,6 +64,7 @@ export default function Checkout() {
   const phoneDigits = addr.phone.replace(/\D/g, '');
   const phoneValid = phoneDigits.length >= 10;
   const whatsappDigits = whatsappNumber.replace(/\D/g, '');
+  const whatsappChosen = !!whatsappOption;
   const whatsappValid = whatsappOption !== 'different' || whatsappDigits.length >= 10;
 
   useEffect(() => {
@@ -117,6 +119,10 @@ export default function Checkout() {
     }
     if (!phoneValid) {
       setError('A valid phone number is required to place the order.');
+      return;
+    }
+    if (!whatsappChosen) {
+      setError('Please select a WhatsApp option.');
       return;
     }
     if (!whatsappValid) {
@@ -291,7 +297,13 @@ export default function Checkout() {
             </Box>
 
             <Box>
-              <FormLabel sx={{ fontSize: 14, display: 'block', mb: 0.5 }}>WhatsApp</FormLabel>
+              <FormLabel
+                required
+                error={attempted && !whatsappChosen}
+                sx={{ fontSize: 14, display: 'block', mb: 0.5 }}
+              >
+                WhatsApp
+              </FormLabel>
               <RadioGroup
                 row
                 value={whatsappOption}
@@ -301,6 +313,11 @@ export default function Checkout() {
                 <FormControlLabel value="different" control={<Radio size="small" />} label="Different number" />
                 <FormControlLabel value="none" control={<Radio size="small" />} label="I don't have WhatsApp" />
               </RadioGroup>
+              {attempted && !whatsappChosen && (
+                <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                  Please select a WhatsApp option.
+                </Typography>
+              )}
               {whatsappOption === 'different' && (
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <TextField
