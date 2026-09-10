@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Divider, Stack, Alert, Chip, MenuItem, Link,
-  Checkbox, FormControlLabel,
+  Checkbox, FormControlLabel, RadioGroup, Radio, FormLabel,
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ShippingRateDialog from '../../components/ShippingRateDialog';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import { DEFAULT_USD_INR_RATE } from '../../lib/garudavegaRates';
+import { placesEnabled } from '../../lib/googlePlaces';
 import {
   getStore, getPlatformConfig, getShippingRates, createOrder, clearCart as clearCartDoc,
 } from '../../firebase/db';
@@ -19,6 +20,14 @@ import { PAYMENT_METHOD } from '../../lib/constants';
 import {
   SHIPPING_COUNTRIES, isDomestic, internationalShipping, countryName, billableWeight, packedWeightKg,
 } from '../../lib/shipping';
+
+// Dial-code options for the Phone/WhatsApp fields specifically -- separate
+// from SHIPPING_COUNTRIES (the delivery destination), and deliberately
+// limited to USA and India for now.
+const PHONE_COUNTRIES = [
+  { code: 'US', dial: '+1', label: 'USA (+1)' },
+  { code: 'IN', dial: '+91', label: 'India (+91)' },
+];
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -35,9 +44,30 @@ export default function Checkout() {
   const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState('');
   const [rateChartOpen, setRateChartOpen] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState('US');
+
+  // WhatsApp: 'same' as phone (default -- no extra input needed), 'different'
+  // (a distinct WhatsApp number, required once chosen), or 'none' (no
+  // WhatsApp at all -- also no extra input needed).
+  const [whatsappOption, setWhatsappOption] = useState('same');
+  const [whatsappCountry, setWhatsappCountry] = useState('US');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+
+  // The address line may only be set by picking a Google Places suggestion --
+  // except when Places isn't configured, or a real search genuinely returns
+  // no suggestions, in which case manual entry is the fallback.
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [suggestionCount, setSuggestionCount] = useState(null);
+  const addressNeedsSelection = placesEnabled && !addressConfirmed;
 
   const phoneDigits = addr.phone.replace(/\D/g, '');
   const phoneValid = phoneDigits.length >= 10;
+  const whatsappDigits = whatsappNumber.replace(/\D/g, '');
+  const whatsappValid = whatsappOption !== 'different' || whatsappDigits.length >= 10;
+
+  useEffect(() => {
+    if (suggestionCount === 0 && addr.line.trim()) setAddressConfirmed(true);
+  }, [suggestionCount]);
 
   useEffect(() => {
     (async () => {
@@ -77,6 +107,10 @@ export default function Checkout() {
       setError('Please fill in the full delivery address.');
       return;
     }
+    if (addressNeedsSelection) {
+      setError('Please select your address from the suggestions dropdown.');
+      return;
+    }
     if (!addr.notApartment && !addr.apartmentName.trim()) {
       setError('Enter the apartment name, or check "Not an apartment".');
       return;
@@ -85,9 +119,14 @@ export default function Checkout() {
       setError('A valid phone number is required to place the order.');
       return;
     }
+    if (!whatsappValid) {
+      setError('Enter a valid WhatsApp number, or choose "Same as phone number" / "I don\'t have WhatsApp".');
+      return;
+    }
     setError('');
     setPlacing(true);
     try {
+      const phoneCountryDial = PHONE_COUNTRIES.find((c) => c.code === phoneCountry)?.dial || '';
       const orderData = {
         customerUid: user.uid,
         customerEmail: user.email || '', // used by the server-side order-email function
@@ -103,7 +142,16 @@ export default function Checkout() {
         sellerNetAmount: totals.sellerNet,
         total: totals.total,
         paymentMethod: PAYMENT_METHOD.COD,
-        shippingAddress: { ...addr, country, countryName: countryName(country) },
+        shippingAddress: {
+          ...addr,
+          country,
+          countryName: countryName(country),
+          phoneCountryCode: phoneCountryDial,
+          whatsappOption,
+          whatsappNumber: whatsappOption === 'different' ? whatsappDigits : '',
+          whatsappCountryCode: whatsappOption === 'different'
+            ? (PHONE_COUNTRIES.find((c) => c.code === whatsappCountry)?.dial || '') : '',
+        },
         shipment: { courierName: '', trackingNumber: '', trackingUrl: '' },
       };
       // A Cloud Function (onNewOrderEmail) sends the operator notification
@@ -151,13 +199,25 @@ export default function Checkout() {
               label="Address line"
               value={addr.line}
               countryCode={country}
-              onChangeText={(line) => setAddr((a) => ({ ...a, line }))}
-              onSelectPlace={(parsed) => setAddr((a) => ({
-                ...a,
-                line: parsed.line || a.line,
-                city: parsed.city || a.city,
-                pincode: parsed.pincode || a.pincode,
-              }))}
+              onChangeText={(line) => { setAddr((a) => ({ ...a, line })); setAddressConfirmed(false); }}
+              onSelectPlace={(parsed) => {
+                setAddr((a) => ({
+                  ...a,
+                  line: parsed.line || a.line,
+                  city: parsed.city || a.city,
+                  pincode: parsed.pincode || a.pincode,
+                }));
+                setAddressConfirmed(true);
+              }}
+              onSuggestionsChange={setSuggestionCount}
+              error={attempted && addressNeedsSelection}
+              helperText={
+                attempted && addressNeedsSelection
+                  ? 'Please select your address from the suggestions dropdown.'
+                  : placesEnabled
+                    ? 'Start typing and pick your address from the suggestions.'
+                    : undefined
+              }
             />
             <FormControlLabel
               control={
@@ -202,20 +262,71 @@ export default function Checkout() {
               onChange={(e) => setAddr({ ...addr, city: e.target.value })} fullWidth />
             <TextField label={intl ? 'ZIP / Postal code' : 'Pincode'} value={addr.pincode}
               onChange={(e) => setAddr({ ...addr, pincode: e.target.value })} fullWidth />
-            <TextField
-              label="Phone number"
-              required
-              type="tel"
-              value={addr.phone}
-              onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
-              error={attempted && !phoneValid}
-              helperText={
-                attempted && !phoneValid
-                  ? 'A valid phone number (at least 10 digits) is required.'
-                  : "We'll use this to coordinate your delivery."
-              }
-              fullWidth
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                select
+                label="Code"
+                value={phoneCountry}
+                onChange={(e) => setPhoneCountry(e.target.value)}
+                sx={{ width: 130, flexShrink: 0 }}
+              >
+                {PHONE_COUNTRIES.map((c) => (
+                  <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                label="Phone number"
+                required
+                type="tel"
+                value={addr.phone}
+                onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
+                error={attempted && !phoneValid}
+                helperText={
+                  attempted && !phoneValid
+                    ? 'A valid phone number (at least 10 digits) is required.'
+                    : "We'll use this to coordinate your delivery."
+                }
+                fullWidth
+              />
+            </Box>
+
+            <Box>
+              <FormLabel sx={{ fontSize: 14, display: 'block', mb: 0.5 }}>WhatsApp</FormLabel>
+              <RadioGroup
+                row
+                value={whatsappOption}
+                onChange={(e) => setWhatsappOption(e.target.value)}
+              >
+                <FormControlLabel value="same" control={<Radio size="small" />} label="Same as phone number" />
+                <FormControlLabel value="different" control={<Radio size="small" />} label="Different number" />
+                <FormControlLabel value="none" control={<Radio size="small" />} label="I don't have WhatsApp" />
+              </RadioGroup>
+              {whatsappOption === 'different' && (
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <TextField
+                    select
+                    label="Code"
+                    value={whatsappCountry}
+                    onChange={(e) => setWhatsappCountry(e.target.value)}
+                    sx={{ width: 130, flexShrink: 0 }}
+                  >
+                    {PHONE_COUNTRIES.map((c) => (
+                      <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="WhatsApp number"
+                    required
+                    type="tel"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    error={attempted && !whatsappValid}
+                    helperText={attempted && !whatsappValid ? 'A valid WhatsApp number (at least 10 digits) is required.' : undefined}
+                    fullWidth
+                  />
+                </Box>
+              )}
+            </Box>
           </Stack>
         </Paper>
 
