@@ -6,12 +6,14 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 import {
   listStores, updateStore, listAllProducts, listCategories, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
 import { formatINR } from '../../lib/calculations';
 import { PRODUCT_STATUS, STORE_STATUS } from '../../lib/constants';
+import PackagingChartEditor from '../../components/PackagingChartEditor';
 
 export default function Catalog() {
   const [tab, setTab] = useState('stores');
@@ -65,6 +67,7 @@ function StoresTab({ stores, onSaved }) {
   const [form, setForm] = useState(EMPTY_STORE);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [packagingStore, setPackagingStore] = useState(null);
 
   const openEdit = (s) => {
     setEditing(s);
@@ -129,6 +132,9 @@ function StoresTab({ stores, onSaved }) {
                 <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => setPackagingStore(s)} title="Packaging chart">
+                    <Inventory2Icon />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -169,6 +175,21 @@ function StoresTab({ stores, onSaved }) {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!packagingStore} onClose={() => setPackagingStore(null)} fullWidth maxWidth="md">
+        <DialogTitle>Packaging chart{packagingStore ? ` — ${packagingStore.name}` : ''}</DialogTitle>
+        <DialogContent>
+          {packagingStore && (
+            <PackagingChartEditor
+              store={packagingStore}
+              onSaved={onSaved}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPackagingStore(null)}>Close</Button>
         </DialogActions>
       </Dialog>
     </>

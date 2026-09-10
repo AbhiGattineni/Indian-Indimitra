@@ -36,33 +36,65 @@ export const SHIPPING_COUNTRIES = [
 export const DEFAULT_CHARGED_TIER = 'saver';
 
 // Real packed weight (product + box + packing material) by product-weight
-// tier, from the seller's own packing records — irregular by design (box
+// tier -- from the seller's own packing records, irregular by design (box
 // sizes step up at different points, and a bigger box is proportionally
-// more weight-efficient), not a formula. Beyond 20 kg there's no recorded
-// data yet, so the last tier's overhead is carried forward as a
-// conservative estimate.
-const PACKED_WEIGHT_BY_TIER = {
-  1: 2, 2: 3, 3: 4, 4: 6, 5: 7, 6: 8, 7: 10, 8: 11, 9: 12, 10: 14,
-  11: 15, 12: 16, 13: 17, 14: 18, 15: 19, 16: 21, 17: 22, 18: 23, 19: 24, 20: 25,
-};
-const MAX_PACKING_TIER = 20;
+// more weight-efficient), not a formula. Per-store and admin/FDM-editable
+// at the store's "Packaging" tab/dialog (see PackagingChartEditor), stored
+// on the store doc as `packagingChart`. This is only the seed default used
+// for a store that hasn't configured its own chart yet.
+const DEFAULT_PACKAGING_ROWS = [
+  { originalKg: 1, afterKg: 2 }, { originalKg: 2, afterKg: 3 }, { originalKg: 3, afterKg: 4 },
+  { originalKg: 4, afterKg: 6 }, { originalKg: 5, afterKg: 7 }, { originalKg: 6, afterKg: 8 },
+  { originalKg: 7, afterKg: 10 }, { originalKg: 8, afterKg: 11 }, { originalKg: 9, afterKg: 12 },
+  { originalKg: 10, afterKg: 14 }, { originalKg: 11, afterKg: 15 }, { originalKg: 12, afterKg: 16 },
+  { originalKg: 13, afterKg: 17 }, { originalKg: 14, afterKg: 18 }, { originalKg: 15, afterKg: 19 },
+  { originalKg: 16, afterKg: 21 }, { originalKg: 17, afterKg: 22 }, { originalKg: 18, afterKg: 23 },
+  { originalKg: 19, afterKg: 24 }, { originalKg: 20, afterKg: 25 },
+];
+
+export function defaultPackagingChart() {
+  return { rows: DEFAULT_PACKAGING_ROWS.map((r) => ({ ...r })), extraKgBeyondLastRow: 0 };
+}
+
+// Guards against a store's packagingChart being missing or malformed --
+// treats it as "use the built-in default" rather than crashing or
+// silently computing zero overhead.
+export function normalizePackagingChart(raw) {
+  if (!raw || !Array.isArray(raw.rows)) return defaultPackagingChart();
+  return { rows: raw.rows, extraKgBeyondLastRow: Number(raw.extraKgBeyondLastRow) || 0 };
+}
 
 // Extra weight (kg) the box/packing materials add for a product weighing
-// `kg` — looked up by the whole-kg tier it falls into (a 3.2 kg order needs
-// the same box as a 4 kg one).
-export function packagingOverheadKg(kg) {
+// `kg`, from `chart` (a store's packagingChart, or the built-in default if
+// omitted) -- an exact-weight row if there is one, otherwise the next
+// heavier configured row (a 3.2 kg order needs the same box as a 4 kg one),
+// otherwise (heavier than every row) the last row's overhead plus
+// `extraKgBeyondLastRow` for each kg past it.
+export function packagingOverheadKg(kg, chart) {
   const w = Math.max(0, Number(kg) || 0);
   if (w === 0) return 0;
-  const tier = Math.min(MAX_PACKING_TIER, Math.max(1, Math.ceil(w)));
-  return PACKED_WEIGHT_BY_TIER[tier] - tier;
+  const originalKg = Math.max(1, Math.ceil(w));
+  const table = normalizePackagingChart(chart);
+  const rows = (table.rows || [])
+    .filter((r) => r && r.afterKg !== '' && r.afterKg != null && Number.isFinite(Number(r.originalKg)))
+    .map((r) => ({ originalKg: Number(r.originalKg), afterKg: Number(r.afterKg) }))
+    .sort((a, b) => a.originalKg - b.originalKg);
+  if (rows.length === 0) return 0;
+  const exact = rows.find((r) => r.originalKg === originalKg);
+  if (exact) return exact.afterKg - exact.originalKg;
+  const above = rows.find((r) => r.originalKg > originalKg);
+  if (above) return above.afterKg - above.originalKg;
+  const last = rows[rows.length - 1];
+  const lastOverhead = last.afterKg - last.originalKg;
+  return lastOverhead + table.extraKgBeyondLastRow * (originalKg - last.originalKg);
 }
 
 // Actual shippable weight once packed — this is what shipping cost should
 // be calculated on, since the box/material weight travels (and is billed)
-// right along with the product.
-export function packedWeightKg(kg) {
+// right along with the product. `chart` is the store's packagingChart.
+export function packedWeightKg(kg, chart) {
   const w = Math.max(0, Number(kg) || 0);
-  return w + packagingOverheadKg(w);
+  return w + packagingOverheadKg(w, chart);
 }
 
 export const DEFAULT_DISCLAIMER = 'International shipping is an estimate based on published courier pricing (e.g. Garudavega) and has not been confirmed against their current rate card. Actual charges may change with courier updates or the USD/INR exchange rate, and are confirmed at the time of shipment.';

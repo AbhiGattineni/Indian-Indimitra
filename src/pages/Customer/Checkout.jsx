@@ -90,7 +90,7 @@ export default function Checkout() {
   // the packaging weight is folded straight into the total weight before
   // looking up the cost on the rate chart — one weight, one shipping number.
   const totalKg = cartWeightKg(items);
-  const packedKg = packedWeightKg(totalKg);
+  const packedKg = packedWeightKg(totalKg, store?.packagingChart);
   const subtotal = +cartSubtotal(items).toFixed(2); // customer-facing (includes platform margin)
   const sellerSub = +sellerSubtotal(items).toFixed(2); // seller's own prices — commission basis
   const margin = +(subtotal - sellerSub).toFixed(2);

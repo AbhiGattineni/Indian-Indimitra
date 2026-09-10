@@ -15,6 +15,7 @@ import { ROLES, STORE_STATUS } from '../../lib/constants';
 import SellerOrders from '../Seller/SellerOrders';
 import SellerListings from '../Seller/SellerListings';
 import SellerReviews from '../Seller/SellerReviews';
+import PackagingChartEditor from '../../components/PackagingChartEditor';
 
 export default function FdmManageStore() {
   const { storeId } = useParams();
@@ -85,11 +86,18 @@ export default function FdmManageStore() {
         <Tab label="Orders" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Listings" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Reviews" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Packaging" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {tab === 0 && <SellerOrders storeOverride={store} />}
       {tab === 1 && <SellerListings storeOverride={store} />}
       {tab === 2 && <SellerReviews storeOverride={store} showOrderFeedback />}
+      {tab === 3 && (
+        <PackagingChartEditor
+          store={store}
+          onSaved={async () => setStoreState(await getStore(storeId))}
+        />
+      )}
     </Box>
   );
 }
