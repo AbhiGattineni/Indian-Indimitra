@@ -103,6 +103,8 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const shipping = intl
     ? internationalShipping(country, packedKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
+  const baseShipping = intl ? internationalShipping(country, totalKg, shippingRates) : shipping;
+  const packagingFee = intl ? Math.max(0, +(shipping - baseShipping).toFixed(2)) : 0;
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
@@ -124,6 +126,9 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
         sellerSubtotal: sellerSub,
         marginAmount: margin,
         shippingFee: shipping,
+        packagingFee,
+        productWeightKg: totalKg,
+        packedWeightKg: packedKg,
         taxAmount: tax,
         commissionAmount: commission,
         sellerNetAmount: sellerNet,
@@ -221,7 +226,10 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
             <Divider sx={{ my: 2 }} />
 
             <Row label="Subtotal" value={formatINR(subtotal)} />
-            <Row label="Shipping" value={shipping ? formatINR(shipping) : 'Free'} />
+            <Row label="Shipping" value={intl ? formatINR(baseShipping) : (shipping ? formatINR(shipping) : 'Free')} />
+            {intl && packagingFee > 0 && (
+              <Row label="Packaging cost" value={formatINR(packagingFee)} />
+            )}
             {intl && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                 Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + packaging)

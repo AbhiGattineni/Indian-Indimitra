@@ -54,6 +54,13 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
 
   if (!order) return null;
   const addr = order.shippingAddress || {};
+  // packedWeightKg/packagingFee only exist on orders placed after packaging
+  // tracking shipped -- older orders fall back to the raw product weight
+  // with no packaging breakdown, since we can't reconstruct it retroactively
+  // (the store's packaging chart may have changed since).
+  const packedKg = order.packedWeightKg ?? cartWeightKg(order.items);
+  const packagingFee = order.packagingFee || 0;
+  const baseShipping = +(Number(order.shippingFee || 0) - packagingFee).toFixed(2);
 
   return (
     <Dialog open={!!order} onClose={onClose} maxWidth="md" fullWidth>
@@ -126,11 +133,12 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" gutterBottom>Totals</Typography>
-        <Field label="Total weight (shipment pricing)" value={`${cartWeightKg(order.items).toFixed(2)} kg`} />
+        <Field label="Total weight (shipment pricing)" value={`${packedKg.toFixed(2)} kg`} />
         <Field label="Seller subtotal (seller's own prices)" value={formatINR(order.sellerSubtotal)} />
         <Field label="Margin (platform)" value={formatINR(order.marginAmount)} />
         <Field label="Subtotal (customer-facing)" value={formatINR(order.subtotal)} />
-        <Field label="Shipping" value={formatINR(order.shippingFee)} />
+        <Field label="Shipping" value={formatINR(baseShipping)} />
+        {packagingFee > 0 && <Field label="Packaging cost" value={formatINR(packagingFee)} />}
         <Field label="Tax" value={formatINR(order.taxAmount)} />
         <Field label="Commission (platform, on seller subtotal)" value={formatINR(order.commissionAmount)} />
         <Field label="Seller net" value={formatINR(order.sellerNetAmount)} />

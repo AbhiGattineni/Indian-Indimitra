@@ -26,6 +26,13 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
       <td class="num">${esc(formatINR(it.lineTotal))}</td>
     </tr>`).join('');
 
+  // packedWeightKg/packagingFee only exist on orders placed after packaging
+  // tracking shipped -- older orders fall back to raw product weight with
+  // no packaging breakdown (can't be reconstructed after the fact).
+  const packedKg = order.packedWeightKg ?? cartWeightKg(items);
+  const packagingFee = order.packagingFee || 0;
+  const baseShipping = +(Number(order.shippingFee || 0) - packagingFee).toFixed(2);
+
   return `<!doctype html>
 <html>
 <head>
@@ -102,9 +109,10 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
   </table>
 
   <table class="totals">
-    <tr><td>Total weight</td><td class="num">${esc(cartWeightKg(items).toFixed(2))} kg</td></tr>
+    <tr><td>Total weight</td><td class="num">${esc(packedKg.toFixed(2))} kg</td></tr>
     <tr><td>Subtotal</td><td class="num">${esc(formatINR(order.subtotal))}</td></tr>
-    <tr><td>Shipping</td><td class="num">${esc(formatINR(order.shippingFee))}</td></tr>
+    <tr><td>Shipping</td><td class="num">${esc(formatINR(baseShipping))}</td></tr>
+    ${packagingFee > 0 ? `<tr><td>Packaging cost</td><td class="num">${esc(formatINR(packagingFee))}</td></tr>` : ''}
     <tr><td>Tax</td><td class="num">${esc(formatINR(order.taxAmount))}</td></tr>
     ${includeSellerFinancials ? `
     <tr><td>Margin (platform)</td><td class="num">${esc(formatINR(order.marginAmount))}</td></tr>

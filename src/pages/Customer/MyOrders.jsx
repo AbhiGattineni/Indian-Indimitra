@@ -51,7 +51,15 @@ export default function MyOrders() {
     <Box>
       <Typography variant="h5" gutterBottom>My orders</Typography>
       {orders.length === 0 && <Typography color="text.secondary">No orders yet.</Typography>}
-      {orders.map((o) => (
+      {orders.map((o) => {
+        // packedWeightKg/packagingFee only exist on orders placed after
+        // packaging tracking shipped -- older orders fall back to the raw
+        // product weight with no packaging breakdown.
+        const packedKg = o.packedWeightKg ?? cartWeightKg(o.items);
+        const productKg = o.productWeightKg ?? cartWeightKg(o.items);
+        const packagingFee = o.packagingFee || 0;
+        const baseShipping = +(Number(o.shippingFee || 0) - packagingFee).toFixed(2);
+        return (
         <Accordion key={o.id}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
@@ -59,7 +67,7 @@ export default function MyOrders() {
                 #{o.id.slice(0, 6)} — {o.storeName}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {cartWeightKg(o.items).toFixed(2)} kg
+                {packedKg.toFixed(2)} kg
               </Typography>
               <Typography>{formatINR(o.total)}</Typography>
               {orderWasEdited(o.originalItems, o.items) && (
@@ -74,6 +82,13 @@ export default function MyOrders() {
             <Divider sx={{ my: 1 }} />
             <Typography variant="body2">
               Deliver to: {formatAddressLine(o.shippingAddress)}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Weight: {packedKg.toFixed(2)} kg ({productKg.toFixed(2)} kg product + packaging)
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Shipping: {formatINR(baseShipping)}
+              {packagingFee > 0 ? ` + Packaging: ${formatINR(packagingFee)}` : ''}
             </Typography>
             <TrackingStatus order={o} canRefresh={false} />
             <Box sx={{ mt: 1 }}>
@@ -119,7 +134,8 @@ export default function MyOrders() {
             )}
           </AccordionDetails>
         </Accordion>
-      ))}
+        );
+      })}
       <EditOrderDialog order={editing} onClose={() => setEditing(null)} onSaved={load} />
       <RateItemDialog
         item={rating?.item}
