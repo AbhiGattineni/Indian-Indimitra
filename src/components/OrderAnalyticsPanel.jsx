@@ -110,12 +110,17 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
       {/* Stat cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Stat label="Total revenue" value={formatINR(summary.totalRevenue)} />
-        <Stat label="Shipping (charged)" value={formatINR(summary.shippingRevenue)} />
-        <Stat label="Platform margin" value={formatINR(summary.marginTotal)} />
-        <Stat label="Commission" value={formatINR(summary.commissionTotal)} />
+        <Stat label="Shipping (charged, at cost)" value={formatINR(summary.shippingRevenue)} />
+        <Stat label="Item margin (₹200/kg markup)" value={formatINR(summary.marginTotal)} />
+        <Stat label="Commission (seller cut)" value={formatINR(summary.commissionTotal)} />
         <Stat label="Paid to sellers" value={formatINR(summary.sellerPayout)} />
         <Stat label="Tax collected" value={formatINR(summary.taxTotal)} />
-        <Stat label="Total profit" value={formatINR(summary.profit)} highlight />
+        <Stat
+          label="Total profit"
+          value={formatINR(summary.profit)}
+          caption={`Item margin ${formatINR(summary.marginTotal)} + Commission ${formatINR(summary.commissionTotal)}. Shipping is charged at cost — it adds no profit.`}
+          highlight
+        />
         <Stat label="Orders (live / cancelled)" value={`${summary.orderCount} / ${summary.cancelledCount}`} />
         <Stat label="Avg order value" value={formatINR(summary.avgOrderValue)} />
       </Grid>
@@ -234,7 +239,7 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
   );
 }
 
-function Stat({ label, value, highlight }) {
+function Stat({ label, value, caption, highlight }) {
   return (
     <Grid item xs={6} sm={4} md={3} lg={4 / 3}>
       <Card sx={{ height: '100%', ...(highlight && { bgcolor: 'success.main', color: 'success.contrastText' }) }}>
@@ -243,6 +248,11 @@ function Stat({ label, value, highlight }) {
             {label}
           </Typography>
           <Typography variant="h6" fontWeight={700}>{value}</Typography>
+          {caption && (
+            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85, mt: 0.25 }}>
+              {caption}
+            </Typography>
+          )}
         </CardContent>
       </Card>
     </Grid>
