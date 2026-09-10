@@ -32,8 +32,10 @@ export const SHIPPING_COUNTRIES = [
 ];
 
 // Which SERVICE_TIERS column is the one actually charged to the customer --
-// the rest are shown on the rate chart for comparison only.
-export const DEFAULT_CHARGED_TIER = 'saver';
+// the rest are shown on the rate chart for comparison only. Regular for now
+// (cheapest published tier) -- an admin can change this at any time in
+// Admin -> Shipping Rates.
+export const DEFAULT_CHARGED_TIER = 'regular';
 
 // Real packed weight (product + box + packing material) by product-weight
 // tier -- from the seller's own packing records, irregular by design (box

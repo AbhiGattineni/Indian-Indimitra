@@ -8,6 +8,7 @@ import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ShippingRateDialog from '../../components/ShippingRateDialog';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
+import InfoTip from '../../components/InfoTip';
 import { DEFAULT_USD_INR_RATE } from '../../lib/garudavegaRates';
 import { placesEnabled } from '../../lib/googlePlaces';
 import {
@@ -364,31 +365,41 @@ export default function Checkout() {
           <Typography variant="h6" gutterBottom>
             Order summary
           </Typography>
-          <Row label="Subtotal" value={formatINR(totals.subtotal)} />
+          <Row
+            label="Subtotal"
+            value={formatINR(totals.subtotal)}
+            info={`Includes the seller's price plus the platform margin (₹200/kg, scaled by weight): ₹${totals.margin.toFixed(2)} on this order.`}
+          />
           <Row
             label={intl ? `Shipping to ${countryName(country)} (${tierLabel})` : 'Shipping'}
-            value={intl ? formatINR(baseShipping) : (totals.shipping ? formatINR(totals.shipping) : 'Free')}
+            value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
+            info={intl && (
+              <Box>
+                <Box sx={{ mb: 1 }}>
+                  Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + {(packedKg - totalKg).toFixed(2)} kg packaging)
+                  {' '}— billed at {billableWeight(packedKg)} kg.
+                </Box>
+                {totals.packagingFee > 0 && (
+                  <Box sx={{ mb: 1 }}>
+                    Base shipping (product weight only): {formatINR(baseShipping)}<br />
+                    Extra for packaging weight: {formatINR(totals.packagingFee)}
+                  </Box>
+                )}
+                <Box sx={{ mb: 1, fontStyle: 'italic' }}>
+                  {shippingRates?.disclaimer}
+                  {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
+                </Box>
+                <Link component="button" type="button" onClick={() => setRateChartOpen(true)} sx={{ color: 'inherit' }}>
+                  View full rate chart by weight (₹ / $) →
+                </Link>
+              </Box>
+            )}
           />
-          {intl && totals.packagingFee > 0 && (
-            <Row label="Packaging cost" value={formatINR(totals.packagingFee)} />
-          )}
-          {intl && (
-            <>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + packaging) —
-                billed at {billableWeight(packedKg)} kg, shipping charged at cost.
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontStyle: 'italic' }}>
-                {shippingRates?.disclaimer}
-                {shippingRates?.ratesAsOf ? ` (Rates as of ${shippingRates.ratesAsOf}.)` : ''}
-              </Typography>
-              <Link component="button" type="button" onClick={() => setRateChartOpen(true)}
-                variant="caption" sx={{ display: 'block', mb: 0.5 }}>
-                View full rate chart by weight (₹ / $) →
-              </Link>
-            </>
-          )}
-          <Row label="Tax" value={formatINR(totals.tax)} />
+          <Row
+            label="Tax"
+            value={formatINR(totals.tax)}
+            info={`${((Number(config?.taxRate) || 0) * 100).toFixed(0)}% of the subtotal.`}
+          />
           <Divider sx={{ my: 1 }} />
           <Row label="Total" value={formatINR(totals.total)} bold />
           <Box sx={{ mt: 2 }}>
@@ -417,10 +428,13 @@ export default function Checkout() {
   );
 }
 
-function Row({ label, value, bold }) {
+function Row({ label, value, bold, info }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-      <Typography fontWeight={bold ? 700 : 400}>{label}</Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography fontWeight={bold ? 700 : 400}>{label}</Typography>
+        {info && <InfoTip title={info} />}
+      </Box>
       <Typography fontWeight={bold ? 700 : 400}>{value}</Typography>
     </Box>
   );
