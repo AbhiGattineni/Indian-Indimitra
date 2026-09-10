@@ -9,6 +9,7 @@ import {
   TableBody, TableRow, TableCell, TableContainer, Paper, Tooltip as MuiTooltip,
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import StarIcon from '@mui/icons-material/Star';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar,
   Legend,
@@ -211,6 +212,9 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
       <Card>
         <CardContent>
           <Typography variant="subtitle2" gutterBottom>Order timing detail</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <StarIcon sx={{ fontSize: 12, verticalAlign: 'text-bottom', color: 'warning.main' }} /> marks the stage an order is currently sitting in -- still counting, not yet complete.
+          </Typography>
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 420 }}>
             <Table size="small" stickyHeader>
               <TableHead>
@@ -233,11 +237,11 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
                     {stores.length > 0 && <TableCell>{t.storeName}</TableCell>}
                     <TableCell>{formatIST(t.createdAt)}</TableCell>
                     <TableCell>{orderStatusLabel(t.status)}</TableCell>
-                    <TableCell>{formatDuration(t.toAccepted)}</TableCell>
-                    <TableCell>{formatDuration(t.toShipped)}</TableCell>
-                    <TableCell>{formatDuration(t.toInTransit)}</TableCell>
-                    <TableCell>{formatDuration(t.toDelivered)}</TableCell>
-                    <TableCell><b>{formatDuration(t.total)}</b></TableCell>
+                    <TableCell><DurationCell cell={t.toAccepted} /></TableCell>
+                    <TableCell><DurationCell cell={t.toShipped} /></TableCell>
+                    <TableCell><DurationCell cell={t.toInTransit} /></TableCell>
+                    <TableCell><DurationCell cell={t.toDelivered} /></TableCell>
+                    <TableCell><b><DurationCell cell={t.total} /></b></TableCell>
                   </TableRow>
                 ))}
                 {timings.length === 0 && (
@@ -253,6 +257,23 @@ export default function OrderAnalyticsPanel({ orders, stores = [] }) {
         </CardContent>
       </Card>
     </Box>
+  );
+}
+
+// Renders one duration cell: a completed stage just shows its time; a stage
+// the order hasn't reached yet but is still sitting in shows the elapsed
+// time so far plus a star, so a long-stuck order is visible at a glance
+// instead of reading as a blank "—".
+function DurationCell({ cell }) {
+  if (!cell || cell.hours == null) return '—';
+  if (!cell.current) return formatDuration(cell.hours);
+  return (
+    <MuiTooltip title="Still in this stage -- waiting, not yet complete" arrow>
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, color: 'warning.main', fontWeight: 600 }}>
+        {formatDuration(cell.hours)}
+        <StarIcon sx={{ fontSize: 13 }} />
+      </Box>
+    </MuiTooltip>
   );
 }
 

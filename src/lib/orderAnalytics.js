@@ -107,20 +107,52 @@ export function computeStageDurations(orders) {
   });
 }
 
+// Which duration cell an order is *currently* sitting in and still waiting
+// on, keyed by its live status -- e.g. an "accepted" order hasn't shipped
+// yet, so it's still accumulating time in the Accepted→Shipped cell.
+// Delivered/cancelled orders are terminal -- nothing is still "waiting".
+const CURRENT_STAGE_BY_STATUS = {
+  [ORDER_STATUS.PLACED]: 'toAccepted',
+  [ORDER_STATUS.ACCEPTED]: 'toShipped',
+  [ORDER_STATUS.SHIPPED]: 'toInTransit',
+  [ORDER_STATUS.IN_TRANSIT]: 'toDelivered',
+};
+
+// A duration cell for a completed transition is {hours, current: false}. A
+// stage the order hasn't reached yet, but is presently sitting in, is
+// {hours: <elapsed so far, ticking>, current: true} instead of null -- the
+// UI marks these with a "still waiting" indicator rather than showing a
+// dash for an in-progress order.
+function stageCell(fromTs, toTs, isLive) {
+  const done = durationHours(fromTs, toTs);
+  if (done != null) return { hours: done, current: false };
+  if (isLive && fromTs) {
+    const elapsed = durationHours(fromTs, Date.now());
+    if (elapsed != null) return { hours: elapsed, current: true };
+  }
+  return { hours: null, current: false };
+}
+
 // Per-order breakdown, newest first, for the drill-down table.
 export function computeOrderTimings(orders) {
   return orders
-    .map((o) => ({
-      id: o.id,
-      storeName: o.storeName,
-      status: o.status,
-      createdAt: o.createdAt,
-      toAccepted: durationHours(o.createdAt, o.acceptedAt),
-      toShipped: durationHours(o.acceptedAt, o.shippedAt),
-      toInTransit: durationHours(o.shippedAt, o.inTransitAt),
-      toDelivered: durationHours(o.inTransitAt, o.deliveredAt),
-      total: durationHours(o.createdAt, o.deliveredAt),
-    }))
+    .map((o) => {
+      const currentStage = CURRENT_STAGE_BY_STATUS[o.status];
+      const stillOpen = o.status !== ORDER_STATUS.DELIVERED && o.status !== ORDER_STATUS.CANCELLED;
+      return {
+        id: o.id,
+        storeName: o.storeName,
+        status: o.status,
+        createdAt: o.createdAt,
+        toAccepted: stageCell(o.createdAt, o.acceptedAt, currentStage === 'toAccepted'),
+        toShipped: stageCell(o.acceptedAt, o.shippedAt, currentStage === 'toShipped'),
+        toInTransit: stageCell(o.shippedAt, o.inTransitAt, currentStage === 'toInTransit'),
+        toDelivered: stageCell(o.inTransitAt, o.deliveredAt, currentStage === 'toDelivered'),
+        // Placed→Delivered as a whole: once delivered, the final duration;
+        // otherwise (still open) the running total since the order was placed.
+        total: stageCell(o.createdAt, o.deliveredAt, stillOpen),
+      };
+    })
     .sort((a, b) => (toMs(b.createdAt) || 0) - (toMs(a.createdAt) || 0));
 }
 
