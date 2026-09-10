@@ -2,15 +2,19 @@
 // everything else is billed on the package weight so the platform never
 // absorbs shipping.
 //
-// Rates are per-destination-country weight "bands" so admins can enter real
-// courier pricing (e.g. Garudavega's published India -> <country> tiers)
-// instead of one formula applied to every country. Bands are fetched from
-// Firestore (`getShippingRates()`) and edited at /admin/shipping-rates; the
-// constants below are only the fallback used before any admin data exists.
+// Rates are one per-destination-country weight-by-service-tier chart (the
+// same shape as the customer-facing rate chart, e.g. Garudavega's published
+// India -> <country> weight/tier table) — admin-editable at
+// /admin/shipping-rates, fetched from Firestore (`getShippingRates()`), and
+// shown to the customer via ShippingRateDialog. One table drives both, so
+// what's charged always matches what's shown. `chargedTier` picks which of
+// the table's service-tier columns is the one actually billed.
 //
 // Rounding (courier convention, not price data — not admin-editable):
-//   1–20 kg  -> round UP to the nearest 0.5 kg
-//   21–25 kg -> round UP to the nearest 1.0 kg
+//   round UP to the next whole kg (the chart is keyed by whole-kg rows).
+import { GARUDAVEGA_RATE_CARD, RATE_CARD_AS_OF, DEFAULT_USD_INR_RATE, SERVICE_TIERS } from './garudavegaRates';
+
+export { SERVICE_TIERS };
 
 export const DOMESTIC_COUNTRY = 'IN';
 
@@ -27,7 +31,9 @@ export const SHIPPING_COUNTRIES = [
   { code: 'OTHER', name: 'Other country' },
 ];
 
-const MIN_KG = 0.5; // couriers bill a 0.5 kg minimum
+// Which SERVICE_TIERS column is the one actually charged to the customer --
+// the rest are shown on the rate chart for comparison only.
+export const DEFAULT_CHARGED_TIER = 'saver';
 
 // Real packed weight (product + box + packing material) by product-weight
 // tier, from the seller's own packing records — irregular by design (box
@@ -59,34 +65,78 @@ export function packedWeightKg(kg) {
   return w + packagingOverheadKg(w);
 }
 
-// Fallback bands: first 1 kg flat, then per-kg add-ons by weight band, then a
-// per-kg-on-the-whole-shipment "bulk" band. Same shape admins edit per country.
-function defaultBands() {
-  return [
-    { uptoKg: 1, mode: 'flat', amount: 3000 },
-    { uptoKg: 5, mode: 'perKg', amount: 750 },
-    { uptoKg: 20, mode: 'perKg', amount: 500 },
-    { uptoKg: null, mode: 'perKgTotal', amount: 625 },
-  ];
-}
-
 export const DEFAULT_DISCLAIMER = 'International shipping is an estimate based on published courier pricing (e.g. Garudavega) and has not been confirmed against their current rate card. Actual charges may change with courier updates or the USD/INR exchange rate, and are confirmed at the time of shipment.';
 
+// Empty per-country chart: no weight rows yet, and no per-kg fallback either
+// (so a country with nothing entered quotes ₹0 + buffer rather than silently
+// guessing -- admin needs to add real rates before it can quote for real).
+function emptyCountryChart() {
+  const perKgBeyond = {};
+  SERVICE_TIERS.forEach((t) => { perKgBeyond[t.key] = 0; });
+  return { rows: [], perKgBeyond };
+}
+
+// US starts pre-filled with the real published Garudavega chart (see
+// garudavegaRates.js) -- the only route we have actual courier data for.
+// perKgBeyond seeds from the last (15 kg) row's implied per-kg rate, so a
+// heavier order still quotes something sane until an admin refines it.
+function seedUsChart() {
+  const rows = GARUDAVEGA_RATE_CARD.map((r) => ({ ...r }));
+  const last = rows[rows.length - 1];
+  const perKgBeyond = {};
+  SERVICE_TIERS.forEach((t) => {
+    perKgBeyond[t.key] = last?.[t.key] ? Math.round(last[t.key] / last.weightKg) : 0;
+  });
+  return { rows, perKgBeyond };
+}
+
 // Built-in fallback used until an admin has entered real per-country rates
-// in Firestore (see getShippingRates in firebase/db.js). Deliberately applies
-// the same generic bands to every country — that's the "not accurate" state
-// this whole config screen exists to replace.
+// in Firestore (see getShippingRates in firebase/db.js). Only the US route
+// (the one route with real published data) starts pre-filled; every other
+// country starts blank for an admin to fill in as real rates become available.
 export function defaultShippingRates() {
   const countries = {};
   SHIPPING_COUNTRIES.forEach(({ code }) => {
-    if (code !== DOMESTIC_COUNTRY) countries[code] = defaultBands();
+    if (code === DOMESTIC_COUNTRY) return;
+    countries[code] = code === 'US' ? seedUsChart() : emptyCountryChart();
   });
   return {
-    buffer: 200,
-    minKg: MIN_KG,
+    chargedTier: DEFAULT_CHARGED_TIER,
+    // 0 by default so checkout matches the displayed chart exactly (the
+    // chart's totals are already GST-inclusive, courier-published prices) --
+    // an admin can set this above 0 deliberately, but doing so means
+    // checkout will charge more than the number shown on the rate chart.
+    buffer: 0,
     disclaimer: DEFAULT_DISCLAIMER,
-    ratesAsOf: null,
-    usdInrRate: 95,
+    ratesAsOf: RATE_CARD_AS_OF,
+    usdInrRate: DEFAULT_USD_INR_RATE,
+    countries,
+  };
+}
+
+// Guards against a country entry saved in the old band-array shape (or
+// anything else malformed) — treats it as "no chart data" rather than
+// feeding shapeless data into the lookup below.
+function isChartShape(entry) {
+  return !!entry && !Array.isArray(entry) && Array.isArray(entry.rows);
+}
+
+// Merges Firestore data over the built-in defaults, per country -- so a
+// country an admin hasn't touched yet (or that still has old-format data)
+// falls back to the code default instead of breaking or quoting ₹0.
+export function normalizeShippingRates(raw) {
+  const base = defaultShippingRates();
+  if (!raw) return base;
+  const countries = {};
+  SHIPPING_COUNTRIES.forEach(({ code }) => {
+    if (code === DOMESTIC_COUNTRY) return;
+    const entry = raw.countries?.[code];
+    countries[code] = isChartShape(entry) ? entry : base.countries[code];
+  });
+  return {
+    ...base,
+    ...raw,
+    chargedTier: raw.chargedTier || base.chargedTier,
     countries,
   };
 }
@@ -99,53 +149,47 @@ export function countryName(code) {
   return SHIPPING_COUNTRIES.find((c) => c.code === code)?.name || code;
 }
 
-// Chargeable weight after courier rounding.
+// Chargeable weight after courier rounding -- the chart is keyed by whole-kg
+// rows, so round up to the next whole kg (1 kg minimum).
 export function billableWeight(kg) {
-  const w = Math.max(MIN_KG, Number(kg) || 0);
-  if (w <= 20) return Math.ceil(w / 0.5) * 0.5; // nearest 0.5 kg up
-  return Math.ceil(w); // 21–25 kg: nearest 1 kg up
+  return Math.max(1, Math.ceil(Number(kg) || 0));
 }
 
-// Cost of a set of weight bands (ascending by uptoKg, null = unbounded) at a
-// given billable weight. 'flat' bands add a fixed amount once their floor is
-// reached; 'perKg' bands add amount * kg-covered-within-the-band; a
-// 'perKgTotal' band (typically the last, "bulk" band) replaces everything
-// below it with amount * the whole billable weight.
-export function bandedCost(bands, billableKg) {
-  if (!Array.isArray(bands) || bands.length === 0) return 0;
-  const sorted = [...bands].sort((a, b) => {
-    const av = a.uptoKg == null ? Infinity : Number(a.uptoKg);
-    const bv = b.uptoKg == null ? Infinity : Number(b.uptoKg);
-    return av - bv;
-  });
-  let cost = 0;
-  let prevCap = 0;
-  for (const band of sorted) {
-    const cap = band.uptoKg == null ? Infinity : Number(band.uptoKg);
-    const amount = Number(band.amount) || 0;
-    if (band.mode === 'perKgTotal') {
-      if (billableKg > prevCap) return Math.round(amount * billableKg);
-      continue;
-    }
-    if (billableKg <= prevCap) break;
-    if (band.mode === 'flat') {
-      cost += amount;
-    } else {
-      cost += (Math.min(billableKg, cap) - prevCap) * amount;
-    }
-    prevCap = cap;
-  }
-  return Math.round(cost);
+// Looks up `tier`'s amount for `kg` in a country's rows: an exact-weight row
+// if there is one, otherwise the next heavier row that has a value (rounds
+// up rather than ever underquoting a gap), otherwise (kg is beyond every
+// row) the heaviest available row, flagged so the caller can extrapolate.
+function lookupChartRow(rows, tier, kg) {
+  const withTier = (rows || [])
+    .filter((r) => r && r[tier] !== '' && r[tier] != null && Number.isFinite(Number(r.weightKg)))
+    .map((r) => ({ weightKg: Number(r.weightKg), amount: Number(r[tier]) }))
+    .sort((a, b) => a.weightKg - b.weightKg);
+  if (withTier.length === 0) return null;
+  const exact = withTier.find((r) => r.weightKg === kg);
+  if (exact) return { amount: exact.amount, atKg: kg, extrapolated: false };
+  const nextAbove = withTier.find((r) => r.weightKg > kg);
+  if (nextAbove) return { amount: nextAbove.amount, atKg: nextAbove.weightKg, extrapolated: false };
+  const last = withTier[withTier.length - 1];
+  return { amount: last.amount, atKg: last.weightKg, extrapolated: true };
 }
 
-// Total shipping cost for a package of the given actual weight (kg), using
-// `rates` from Firestore (falls back to the generic built-in bands for a
-// country with no admin-entered data, and to the full built-in table if
-// `rates` itself hasn't loaded yet).
+// Total shipping cost for a package of the given actual weight (kg), read
+// straight off the same per-country weight/tier chart shown to the customer
+// (see ShippingRateDialog) -- so what's charged always matches what's shown.
+// `rates` comes from Firestore (getShippingRates); falls back to the
+// built-in chart if it hasn't loaded yet.
 export function internationalShipping(country, actualKg, rates) {
-  const w = billableWeight(actualKg);
+  const kg = billableWeight(actualKg);
   const table = rates || defaultShippingRates();
-  const bands = table.countries?.[country] || table.countries?.OTHER || defaultBands();
+  const tier = table.chargedTier || DEFAULT_CHARGED_TIER;
+  const countryData = table.countries?.[country] || table.countries?.OTHER || emptyCountryChart();
+  const perKgBeyond = Number(countryData.perKgBeyond?.[tier]) || 0;
+  const found = lookupChartRow(countryData.rows, tier, kg);
+  const amount = !found
+    ? perKgBeyond * kg
+    : found.extrapolated
+      ? found.amount + perKgBeyond * (kg - found.atKg)
+      : found.amount;
   const buffer = Number(table.buffer) || 0;
-  return bandedCost(bands, w) + buffer;
+  return Math.round(amount) + buffer;
 }

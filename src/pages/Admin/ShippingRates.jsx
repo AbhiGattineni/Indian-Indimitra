@@ -1,24 +1,22 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, TextField, Button, Stack, Alert, MenuItem, Table, TableHead, TableContainer,
-  TableBody, TableRow, TableCell, IconButton, Tabs, Tab,
+  TableBody, TableRow, TableCell, IconButton, Tabs, Tab, Radio, RadioGroup, FormControlLabel, FormLabel,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { getShippingRates, setShippingRates } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SHIPPING_COUNTRIES, DOMESTIC_COUNTRY, defaultShippingRates } from '../../lib/shipping';
+import {
+  SHIPPING_COUNTRIES, DOMESTIC_COUNTRY, defaultShippingRates, SERVICE_TIERS,
+} from '../../lib/shipping';
 
 const INTL_COUNTRIES = SHIPPING_COUNTRIES.filter((c) => c.code !== DOMESTIC_COUNTRY);
 
-const MODE_LABELS = {
-  flat: 'Flat, up to weight',
-  perKg: 'Per kg within band',
-  perKgTotal: 'Per kg × whole shipment (bulk)',
-};
-
-function emptyBand() {
-  return { uptoKg: '', mode: 'perKg', amount: '' };
+function emptyRow() {
+  const row = { weightKg: '' };
+  SERVICE_TIERS.forEach((t) => { row[t.key] = ''; });
+  return row;
 }
 
 export default function ShippingRates() {
@@ -35,30 +33,40 @@ export default function ShippingRates() {
   };
   useEffect(() => { load(); }, []);
 
-  const bands = rates.countries?.[country] || [];
+  const chart = rates.countries?.[country] || { rows: [], perKgBeyond: {} };
+  const rows = chart.rows || [];
 
-  const updateBands = (nextBands) => {
-    setRates({ ...rates, countries: { ...rates.countries, [country]: nextBands } });
+  const updateChart = (patch) => {
+    setRates({ ...rates, countries: { ...rates.countries, [country]: { ...chart, ...patch } } });
     setSaved(false);
   };
-  const updateBand = (i, patch) => {
-    updateBands(bands.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  const updateRow = (i, patch) => {
+    updateChart({ rows: rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) });
   };
-  const addBand = () => updateBands([...bands, emptyBand()]);
-  const removeBand = (i) => updateBands(bands.filter((_, idx) => idx !== i));
+  const addRow = () => updateChart({ rows: [...rows, emptyRow()] });
+  const removeRow = (i) => updateChart({ rows: rows.filter((_, idx) => idx !== i) });
+  const updatePerKgBeyond = (tierKey, value) => {
+    updateChart({ perKgBeyond: { ...chart.perKgBeyond, [tierKey]: value } });
+  };
 
   const save = async () => {
     const cleanedCountries = {};
-    Object.entries(rates.countries || {}).forEach(([code, list]) => {
-      cleanedCountries[code] = list.map((b) => ({
-        uptoKg: b.mode === 'perKgTotal' || b.uptoKg === '' ? null : Number(b.uptoKg),
-        mode: b.mode,
-        amount: Number(b.amount) || 0,
-      }));
+    Object.entries(rates.countries || {}).forEach(([code, c]) => {
+      const cleanedRows = (c.rows || [])
+        .filter((r) => r.weightKg !== '')
+        .map((r) => {
+          const row = { weightKg: Number(r.weightKg) };
+          SERVICE_TIERS.forEach((t) => { row[t.key] = r[t.key] === '' ? null : Number(r[t.key]); });
+          return row;
+        })
+        .sort((a, b) => a.weightKg - b.weightKg);
+      const perKgBeyond = {};
+      SERVICE_TIERS.forEach((t) => { perKgBeyond[t.key] = Number(c.perKgBeyond?.[t.key]) || 0; });
+      cleanedCountries[code] = { rows: cleanedRows, perKgBeyond };
     });
     await setShippingRates({
+      chargedTier: rates.chargedTier,
       buffer: Number(rates.buffer) || 0,
-      minKg: Number(rates.minKg) || 0.5,
       disclaimer: rates.disclaimer || '',
       ratesAsOf: rates.ratesAsOf || '',
       usdInrRate: Number(rates.usdInrRate) || 95,
@@ -70,22 +78,36 @@ export default function ShippingRates() {
   if (loading) return null;
 
   return (
-    <Box sx={{ maxWidth: 780 }}>
+    <Box sx={{ maxWidth: 900 }}>
       <Typography variant="h5" gutterBottom>Shipping rates (international)</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Weight-based rates charged for orders shipping outside India, by destination country.
-        Domestic shipping is set per-store, not here. Rates here are shown to customers with the
-        disclaimer below — keep it accurate to when you last checked the courier&apos;s published pricing.
+        One weight × service-tier chart per destination country — the exact same numbers are shown to
+        customers on the rate chart at checkout and used to calculate what they're actually charged, so
+        the two can never drift apart. Domestic shipping is set per-store, not here.
       </Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Stack spacing={2}>
+          <Box>
+            <FormLabel sx={{ fontSize: 14, display: 'block', mb: 0.5 }}>
+              Service tier actually charged to customers
+            </FormLabel>
+            <RadioGroup
+              row
+              value={rates.chargedTier}
+              onChange={(e) => { setRates({ ...rates, chargedTier: e.target.value }); setSaved(false); }}
+            >
+              {SERVICE_TIERS.map((t) => (
+                <FormControlLabel key={t.key} value={t.key} control={<Radio size="small" />} label={t.label} />
+              ))}
+            </RadioGroup>
+          </Box>
           <TextField
             label="Flat buffer per shipment (₹)"
             type="number"
             value={rates.buffer}
             onChange={(e) => { setRates({ ...rates, buffer: e.target.value }); setSaved(false); }}
-            helperText="Added on top of the banded cost below, for every international shipment."
+            helperText="Added on top of the chart amount below. Keep at 0 so checkout matches the rate chart shown to customers exactly -- any nonzero value means checkout will charge more than the chart's displayed number."
           />
           <TextField
             label="USD/INR rate (₹ per $1, approximate)"
@@ -132,49 +154,51 @@ export default function ShippingRates() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Mode</TableCell>
-                <TableCell>Up to (kg)</TableCell>
-                <TableCell>Amount (₹)</TableCell>
+                <TableCell>Weight (kg)</TableCell>
+                {SERVICE_TIERS.map((t) => (
+                  <TableCell key={t.key}>{t.label} (₹)</TableCell>
+                ))}
                 <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
-              {bands.map((b, i) => (
+              {rows.map((r, i) => (
                 <TableRow key={i}>
-                  <TableCell sx={{ minWidth: 220 }}>
+                  <TableCell sx={{ width: 110 }}>
                     <TextField
-                      select size="small" fullWidth value={b.mode}
-                      onChange={(e) => updateBand(i, { mode: e.target.value })}
-                    >
-                      {Object.entries(MODE_LABELS).map(([v, label]) => (
-                        <MenuItem key={v} value={v}>{label}</MenuItem>
-                      ))}
-                    </TextField>
-                  </TableCell>
-                  <TableCell sx={{ width: 140 }}>
-                    <TextField
-                      size="small" type="number" fullWidth
-                      value={b.mode === 'perKgTotal' ? '' : b.uptoKg}
-                      placeholder={b.mode === 'perKgTotal' ? '∞' : ''}
-                      disabled={b.mode === 'perKgTotal'}
-                      onChange={(e) => updateBand(i, { uptoKg: e.target.value })}
+                      size="small" type="number" fullWidth value={r.weightKg ?? ''}
+                      onChange={(e) => updateRow(i, { weightKg: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell sx={{ width: 140 }}>
-                    <TextField
-                      size="small" type="number" fullWidth value={b.amount}
-                      onChange={(e) => updateBand(i, { amount: e.target.value })}
-                    />
-                  </TableCell>
+                  {SERVICE_TIERS.map((t) => (
+                    <TableCell key={t.key} sx={{ width: 130 }}>
+                      <TextField
+                        size="small" type="number" fullWidth value={r[t.key] ?? ''}
+                        onChange={(e) => updateRow(i, { [t.key]: e.target.value })}
+                      />
+                    </TableCell>
+                  ))}
                   <TableCell sx={{ width: 48 }}>
-                    <IconButton size="small" onClick={() => removeBand(i)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => removeRow(i)}><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow>
+                <TableCell sx={{ fontStyle: 'italic' }}>Beyond last row, ₹/kg</TableCell>
+                {SERVICE_TIERS.map((t) => (
+                  <TableCell key={t.key}>
+                    <TextField
+                      size="small" type="number" fullWidth value={chart.perKgBeyond?.[t.key] ?? ''}
+                      onChange={(e) => updatePerKgBeyond(t.key, e.target.value)}
+                    />
+                  </TableCell>
+                ))}
+                <TableCell />
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
-        <Button startIcon={<AddIcon />} onClick={addBand} sx={{ mt: 1 }}>Add band</Button>
+        <Button startIcon={<AddIcon />} onClick={addRow} sx={{ mt: 1 }}>Add weight row</Button>
       </Paper>
 
       {saved && <Alert severity="success" sx={{ mt: 2 }}>Saved.</Alert>}
