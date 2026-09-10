@@ -24,6 +24,7 @@ import {
 import { isDomestic, internationalShipping, packedWeightKg } from '../lib/shipping';
 import { useAuthStore } from '../store/useAuthStore';
 import { ROLES } from '../lib/constants';
+import InfoTip from './InfoTip';
 
 const WEIGHT_OPTIONS = [
   { g: 250, label: '250 g' },
@@ -225,17 +226,33 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
 
             <Divider sx={{ my: 2 }} />
 
-            <Row label="Subtotal" value={formatINR(subtotal)} />
-            <Row label="Shipping" value={intl ? formatINR(baseShipping) : (shipping ? formatINR(shipping) : 'Free')} />
-            {intl && packagingFee > 0 && (
-              <Row label="Packaging cost" value={formatINR(packagingFee)} />
-            )}
-            {intl && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + packaging)
-              </Typography>
-            )}
-            <Row label="Tax" value={formatINR(tax)} />
+            <Row
+              label="Subtotal"
+              value={formatINR(subtotal)}
+              info={`Includes the seller's price plus the platform margin (₹200/kg, scaled by weight): ₹${margin.toFixed(2)} on this order.`}
+            />
+            <Row
+              label="Shipping"
+              value={shipping ? formatINR(shipping) : 'Free'}
+              info={intl && (
+                <Box>
+                  <Box sx={{ mb: 1 }}>
+                    Total weight {packedKg.toFixed(2)} kg ({totalKg.toFixed(2)} kg product + {(packedKg - totalKg).toFixed(2)} kg packaging).
+                  </Box>
+                  {packagingFee > 0 && (
+                    <Box>
+                      Base shipping (product weight only): {formatINR(baseShipping)}<br />
+                      Extra for packaging weight: {formatINR(packagingFee)}
+                    </Box>
+                  )}
+                </Box>
+              )}
+            />
+            <Row
+              label="Tax"
+              value={formatINR(tax)}
+              info={`${((Number(config?.taxRate) || 0) * 100).toFixed(0)}% of the subtotal.`}
+            />
             <Row label="Total" value={formatINR(total)} bold />
 
             {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
@@ -252,10 +269,13 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   );
 }
 
-function Row({ label, value, bold }) {
+function Row({ label, value, bold, info }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.4 }}>
-      <Typography fontWeight={bold ? 700 : 400}>{label}</Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography fontWeight={bold ? 700 : 400}>{label}</Typography>
+        {info && <InfoTip title={info} />}
+      </Box>
       <Typography fontWeight={bold ? 700 : 400}>{value}</Typography>
     </Box>
   );
