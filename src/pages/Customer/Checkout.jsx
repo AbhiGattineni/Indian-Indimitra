@@ -87,8 +87,12 @@ export default function Checkout() {
   // Shipping is country-aware: India keeps the store's domestic flat/free rule;
   // any other country pays a weight-based estimate so we never absorb shipping.
   // The box + packing material travels (and is billed) with the product, so
-  // the packaging weight is folded straight into the total weight before
-  // looking up the cost on the rate chart — one weight, one shipping number.
+  // the packaging weight is folded into the total weight before looking up
+  // the cost on the rate chart. `packagingFee` is a display-only breakdown
+  // of how much of that one shipping number is attributable to packaging
+  // (shipping computed on packed weight minus shipping computed on product
+  // weight alone) -- the actual charge is still one combined `shipping`
+  // figure, not an added-on-top cost.
   const totalKg = cartWeightKg(items);
   const packedKg = packedWeightKg(totalKg, store?.packagingChart);
   const subtotal = +cartSubtotal(items).toFixed(2); // customer-facing (includes platform margin)
@@ -98,11 +102,15 @@ export default function Checkout() {
   const shipping = intl
     ? internationalShipping(country, packedKg, shippingRates)
     : +shippingFee(subtotal, store).toFixed(2);
+  const baseShipping = intl ? internationalShipping(country, totalKg, shippingRates) : shipping;
+  const packagingFee = intl ? Math.max(0, +(shipping - baseShipping).toFixed(2)) : 0;
   const tax = taxAmount(subtotal, config);
   const commission = commissionAmount(sellerSub, config);
   const total = +(subtotal + shipping + tax).toFixed(2);
   const sellerNet = +(sellerSub - commission).toFixed(2);
-  const totals = { subtotal, sellerSub, margin, shipping, tax, commission, total, sellerNet };
+  const totals = {
+    subtotal, sellerSub, margin, shipping, packagingFee, tax, commission, total, sellerNet,
+  };
   const tierLabel = SERVICE_TIERS.find((t) => t.key === shippingRates?.chargedTier)?.label || 'Saver';
 
   const placeOrder = async () => {
@@ -145,6 +153,9 @@ export default function Checkout() {
         sellerSubtotal: totals.sellerSub,
         marginAmount: totals.margin,
         shippingFee: totals.shipping,
+        packagingFee: totals.packagingFee,
+        productWeightKg: totalKg,
+        packedWeightKg: packedKg,
         taxAmount: totals.tax,
         commissionAmount: totals.commission,
         sellerNetAmount: totals.sellerNet,
@@ -356,8 +367,11 @@ export default function Checkout() {
           <Row label="Subtotal" value={formatINR(totals.subtotal)} />
           <Row
             label={intl ? `Shipping to ${countryName(country)} (${tierLabel})` : 'Shipping'}
-            value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
+            value={intl ? formatINR(baseShipping) : (totals.shipping ? formatINR(totals.shipping) : 'Free')}
           />
+          {intl && totals.packagingFee > 0 && (
+            <Row label="Packaging cost" value={formatINR(totals.packagingFee)} />
+          )}
           {intl && (
             <>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
