@@ -12,12 +12,14 @@ import { useStoreSelection } from '../../store/useStoreSelection';
 import { listStoresByFdm, listProductsByStore, listOrdersByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { ORDER_STATUS, STORE_STATUS } from '../../lib/constants';
+import OrderAnalyticsPanel from '../../components/OrderAnalyticsPanel';
 
 export default function FdmDashboard() {
   const { user, profile } = useAuthStore();
   const setStore = useStoreSelection((s) => s.setStore);
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -48,14 +50,19 @@ export default function FdmDashboard() {
               const openOrders = orders.filter(
                 (o) => o.status === ORDER_STATUS.PLACED || o.status === ORDER_STATUS.ACCEPTED
               ).length;
-              return { store, stats: { products: products.length, orders: orders.length, openOrders, revenue } };
+              return {
+                store, stats: { products: products.length, orders: orders.length, openOrders, revenue }, orders,
+              };
             } catch (e) {
               console.error(`Failed to load stats for store ${store.id}`, e);
-              return { store, stats: null };
+              return { store, stats: null, orders: [] };
             }
           })
         );
-        if (!cancelled) setRows(enriched);
+        if (!cancelled) {
+          setRows(enriched);
+          setAllOrders(enriched.flatMap((r) => r.orders));
+        }
       } catch (e) {
         console.error('Failed to load assigned businesses', e);
         if (!cancelled) setError('Could not load your businesses. Please refresh.');
@@ -139,6 +146,15 @@ export default function FdmDashboard() {
             </Grid>
           ))}
         </Grid>
+      )}
+
+      {rows.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <OrderAnalyticsPanel
+            orders={allOrders}
+            stores={rows.length > 1 ? rows.map(({ store }) => ({ id: store.id, name: store.name })) : []}
+          />
+        </Box>
       )}
     </Box>
   );

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack,
 } from '@mui/material';
-import { updateOrder, logOrderStatusChange } from '../firebase/db';
+import { updateOrderStatus, logOrderStatusChange } from '../firebase/db';
 import { useAuthStore } from '../store/useAuthStore';
 import { ORDER_STATUS, orderStatusLabel } from '../lib/constants';
 import OrderStatusLog from './OrderStatusLog';
@@ -26,14 +26,13 @@ export default function OrderStatusActions({ order, onChanged }) {
   });
 
   const setStatus = async (status) => {
-    await updateOrder(order.id, { status });
+    await updateOrderStatus(order.id, status);
     await logChange(status);
     onChanged?.();
   };
 
   const confirmInTransit = async () => {
-    await updateOrder(order.id, {
-      status: ORDER_STATUS.IN_TRANSIT,
+    await updateOrderStatus(order.id, ORDER_STATUS.IN_TRANSIT, {
       shipment: { ...transit, inTransitAt: new Date().toISOString() },
     });
     await logChange(ORDER_STATUS.IN_TRANSIT);

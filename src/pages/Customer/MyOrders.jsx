@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import { listOrdersByCustomer, updateOrder } from '../../firebase/db';
+import { listOrdersByCustomer, updateOrderStatus } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
@@ -36,8 +36,7 @@ export default function MyOrders() {
   useEffect(() => { if (user) load(); }, [user]);
 
   const cancel = async (o) => {
-    await updateOrder(o.id, {
-      status: ORDER_STATUS.CANCELLED,
+    await updateOrderStatus(o.id, ORDER_STATUS.CANCELLED, {
       cancelReason: 'Cancelled by customer',
       cancelledBy: user.uid,
     });

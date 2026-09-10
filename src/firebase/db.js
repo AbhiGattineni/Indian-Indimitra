@@ -199,6 +199,26 @@ export async function updateOrder(orderId, data) {
   return updateDoc(doc(db, 'orders', orderId), { ...data, updatedAt: serverTimestamp() });
 }
 
+// Stamps a per-stage timestamp (acceptedAt/shippedAt/inTransitAt/deliveredAt/
+// cancelledAt) alongside the status change, so the Analytics dashboards can
+// compute time-in-status without re-reading each order's statusLog. `placed`
+// has no stamp of its own -- createdAt already covers it.
+const STATUS_TIMESTAMP_FIELD = {
+  [ORDER_STATUS.ACCEPTED]: 'acceptedAt',
+  [ORDER_STATUS.SHIPPED]: 'shippedAt',
+  [ORDER_STATUS.IN_TRANSIT]: 'inTransitAt',
+  [ORDER_STATUS.DELIVERED]: 'deliveredAt',
+  [ORDER_STATUS.CANCELLED]: 'cancelledAt',
+};
+export async function updateOrderStatus(orderId, status, extra = {}) {
+  const field = STATUS_TIMESTAMP_FIELD[status];
+  return updateOrder(orderId, {
+    status,
+    ...(field ? { [field]: serverTimestamp() } : {}),
+    ...extra,
+  });
+}
+
 // Audit trail of order status changes — who changed it and when. Admin/FDM
 // visibility only (enforced by firestore.rules).
 export async function logOrderStatusChange(orderId, entry) {
