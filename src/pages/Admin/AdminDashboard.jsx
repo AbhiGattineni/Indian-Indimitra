@@ -8,25 +8,30 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import { listUsers, listStores, listAllOrders } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
 import { STORE_STATUS, ORDER_STATUS } from '../../lib/constants';
+import OrderAnalyticsPanel from '../../components/OrderAnalyticsPanel';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [stores, setStores] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [users, stores, orders] = await Promise.all([
+      const [users, storeList, orderList] = await Promise.all([
         listUsers(), listStores(), listAllOrders(),
       ]);
-      const gmv = orders
+      const gmv = orderList
         .filter((o) => o.status === ORDER_STATUS.DELIVERED)
         .reduce((s, o) => s + (o.total || 0), 0);
       setStats({
         users: users.length,
-        stores: stores.length,
-        pendingStores: stores.filter((s) => s.approvalStatus === STORE_STATUS.PENDING).length,
-        orders: orders.length,
+        stores: storeList.length,
+        pendingStores: storeList.filter((s) => s.approvalStatus === STORE_STATUS.PENDING).length,
+        orders: orderList.length,
         gmv,
       });
+      setOrders(orderList);
+      setStores(storeList.map((s) => ({ id: s.id, name: s.name })));
     })();
   }, []);
 
@@ -47,6 +52,8 @@ export default function AdminDashboard() {
         <StatCard icon={ReceiptLongIcon} color="info" label="Orders" value={stats.orders} />
         <StatCard icon={PaymentsIcon} color="success" label="GMV (delivered)" value={formatINR(stats.gmv)} />
       </Grid>
+
+      <OrderAnalyticsPanel orders={orders} stores={stores} />
     </Box>
   );
 }
