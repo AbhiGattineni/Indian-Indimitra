@@ -19,6 +19,7 @@ import {
 import { PAYMENT_METHOD } from '../../lib/constants';
 import {
   SHIPPING_COUNTRIES, isDomestic, internationalShipping, countryName, billableWeight, packedWeightKg,
+  SERVICE_TIERS,
 } from '../../lib/shipping';
 
 // Dial-code options for the Phone/WhatsApp fields specifically -- separate
@@ -102,6 +103,7 @@ export default function Checkout() {
   const total = +(subtotal + shipping + tax).toFixed(2);
   const sellerNet = +(sellerSub - commission).toFixed(2);
   const totals = { subtotal, sellerSub, margin, shipping, tax, commission, total, sellerNet };
+  const tierLabel = SERVICE_TIERS.find((t) => t.key === shippingRates?.chargedTier)?.label || 'Saver';
 
   const placeOrder = async () => {
     setAttempted(true);
@@ -353,7 +355,7 @@ export default function Checkout() {
           </Typography>
           <Row label="Subtotal" value={formatINR(totals.subtotal)} />
           <Row
-            label={intl ? `Shipping to ${countryName(country)}` : 'Shipping'}
+            label={intl ? `Shipping to ${countryName(country)} (${tierLabel})` : 'Shipping'}
             value={totals.shipping ? formatINR(totals.shipping) : 'Free'}
           />
           {intl && (
@@ -390,7 +392,12 @@ export default function Checkout() {
       <ShippingRateDialog
         open={rateChartOpen}
         onClose={() => setRateChartOpen(false)}
+        country={country}
+        rows={shippingRates?.countries?.[country]?.rows || []}
+        chargedTier={shippingRates?.chargedTier}
         usdInrRate={shippingRates?.usdInrRate || DEFAULT_USD_INR_RATE}
+        disclaimer={shippingRates?.disclaimer}
+        ratesAsOf={shippingRates?.ratesAsOf}
       />
     </Box>
   );
