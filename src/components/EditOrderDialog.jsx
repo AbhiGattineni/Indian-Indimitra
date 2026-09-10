@@ -98,7 +98,7 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const sellerSub = +sellerSubtotal(withTotals).toFixed(2);
   const margin = +(subtotal - sellerSub).toFixed(2);
   const totalKg = cartWeightKg(withTotals);
-  const packedKg = packedWeightKg(totalKg);
+  const packedKg = packedWeightKg(totalKg, store?.packagingChart);
   const intl = !isDomestic(country);
   const shipping = intl
     ? internationalShipping(country, packedKg, shippingRates)
