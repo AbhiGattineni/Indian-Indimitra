@@ -186,5 +186,17 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && (resource.data.customerUid == request.auth.uid || isAdmin());
     }
+
+    // ---------- service requests (public NRI-services lead form) ----------
+    // Anyone (incl. signed-out visitors) may submit a request; only admins can
+    // read or manage them. Basic shape check keeps junk writes out.
+    match /serviceRequests/{id} {
+      allow create: if request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.details is string
+        && request.resource.data.services is list
+        && request.resource.data.status == 'new';
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

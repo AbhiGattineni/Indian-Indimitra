@@ -17,7 +17,7 @@ export default function Cart() {
         <Typography variant="h6" color="text.secondary">
           Your cart is empty.
         </Typography>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/')}>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/delivery')}>
           Browse products
         </Button>
       </Box>

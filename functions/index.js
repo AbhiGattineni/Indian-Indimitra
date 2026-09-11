@@ -369,3 +369,63 @@ exports.refreshUpsTracking = onCall(async (request) => {
   logger.info(`Order ${orderId}: refreshed (mocked) UPS tracking by ${request.auth.uid}`);
   return tracking;
 });
+
+// ---- Trigger 3: new NRI service request -> email the admin team ----
+exports.onServiceRequestEmail = onDocumentCreated(
+  { document: 'serviceRequests/{id}', secrets: [EMAILJS_PRIVATE_KEY] },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const r = snap.data();
+    const id = event.params.id;
+
+    const details = [
+      'New NRI service request',
+      '',
+      `Name:     ${r.name || '-'}`,
+      `Email:    ${r.email || '-'}`,
+      `Phone:    ${r.phone || '-'}`,
+      `Country:  ${r.country || '-'}`,
+      `City:     ${r.city || '-'}`,
+      `Services: ${(r.services || []).join(', ') || '-'}`,
+      `Timeline: ${r.timeline || '-'}`,
+      `Budget:   ${r.budget || '-'}`,
+      '',
+      'Details:',
+      r.details || '-',
+      '',
+      `Request ID: ${id}`,
+    ].join('\n');
+    const subject = `New service request — ${r.name || 'NRI'}`;
+
+    for (const toEmail of ADMIN_BACKUP) {
+      const body = {
+        service_id: EMAILJS_SERVICE_ID.value(),
+        template_id: EMAILJS_TEMPLATE_ID.value(),
+        user_id: EMAILJS_PUBLIC_KEY.value(),
+        accessToken: EMAILJS_PRIVATE_KEY.value(),
+        template_params: {
+          to_email: toEmail,
+          email_subject: subject,
+          order_details: details,
+          store_name: 'NRI Services',
+          order_short_id: id.slice(0, 6),
+        },
+      };
+      try {
+        const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          logger.error(`service-request email to ${toEmail} failed (${res.status}): ${await res.text()}`);
+        } else {
+          logger.info(`service-request email sent to ${toEmail} for ${id}`);
+        }
+      } catch (e) {
+        logger.error(`service-request email error to ${toEmail} for ${id}`, e);
+      }
+    }
+  }
+);

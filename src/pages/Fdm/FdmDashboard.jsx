@@ -75,7 +75,7 @@ export default function FdmDashboard() {
 
   const openStorefront = (store) => {
     setStore(store);
-    navigate('/');
+    navigate('/delivery');
   };
 
   if (loading) {

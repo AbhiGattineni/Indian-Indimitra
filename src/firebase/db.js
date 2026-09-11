@@ -310,3 +310,17 @@ export async function saveCart(uid, cart) {
 export async function clearCart(uid) {
   return deleteDoc(doc(db, 'users', uid, 'cart', 'current'));
 }
+
+/* ---------------- Service requests (NRI services lead form) ---------------- */
+// Public lead form — anyone can submit; only admins can read/manage (rules).
+export async function createServiceRequest(data) {
+  return addDoc(collection(db, 'serviceRequests'), {
+    ...data,
+    status: 'new',
+    createdAt: serverTimestamp(),
+  });
+}
+export async function listServiceRequests() {
+  const snap = await getDocs(query(collection(db, 'serviceRequests'), orderBy('createdAt', 'desc')));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}

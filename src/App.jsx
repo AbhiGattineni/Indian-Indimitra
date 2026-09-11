@@ -9,6 +9,9 @@ import { ROLES } from './lib/constants';
 // Public / auth
 import SignIn from './pages/Auth/SignIn';
 import NotAuthorized from './pages/Auth/NotAuthorized';
+// Landing gateway + NRI services
+import Gateway from './pages/Landing/Gateway';
+import Services from './pages/Services/Services';
 // Customer
 import Browse from './pages/Customer/Browse';
 import ProductPage from './pages/Customer/ProductPage';
@@ -48,7 +51,9 @@ export default function App() {
     <Layout>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Browse />} />
+        <Route path="/" element={<Gateway />} />
+        <Route path="/delivery" element={<Browse />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/not-authorized" element={<NotAuthorized />} />

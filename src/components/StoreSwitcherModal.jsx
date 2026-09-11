@@ -22,7 +22,7 @@ export default function StoreSwitcherModal({ open, onClose }) {
   const choose = (store) => {
     setStore(store);
     onClose();
-    navigate('/');
+    navigate('/delivery');
   };
 
   return (
