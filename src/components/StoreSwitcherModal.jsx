@@ -11,7 +11,10 @@ import { useStoreSelection } from '../store/useStoreSelection';
 import { useAuthStore } from '../store/useAuthStore';
 import { ROLES } from '../lib/constants';
 
-export default function StoreSwitcherModal({ open, onClose }) {
+// `mandatory`: when true, the customer has no store selected yet and must
+// pick one to proceed -- no close button, and backdrop/Escape can't dismiss
+// it (see Browse.jsx, which forces this open when nothing is selected).
+export default function StoreSwitcherModal({ open, onClose, mandatory = false }) {
   const { stores, selectedStore, setStore } = useStoreSelection();
   const { profile } = useAuthStore();
   const navigate = useNavigate();
@@ -25,14 +28,26 @@ export default function StoreSwitcherModal({ open, onClose }) {
     navigate('/delivery');
   };
 
+  const handleClose = (_event, reason) => {
+    if (mandatory && (reason === 'backdropClick' || reason === 'escapeKeyDown')) return;
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      disableEscapeKeyDown={mandatory}
+      maxWidth="xs" fullWidth
+      PaperProps={{ sx: { borderRadius: 3 } }}
+    >
       <DialogTitle sx={{ pb: 0.5 }}>
         Choose a business
-        <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        {!mandatory && (
+          <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        )}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           Pick a store to browse and order from.
         </Typography>

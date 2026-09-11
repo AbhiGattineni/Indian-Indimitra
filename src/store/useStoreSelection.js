@@ -13,19 +13,26 @@ export const useStoreSelection = create((set, get) => ({
   loading: false,
   loaded: false,
 
-  // Load approved stores once and resolve the active one (persisted or first).
-  // `stores` includes internal/testing stores (StoreSwitcherModal filters those
-  // by role) — but the default/fallback pick never lands on one, so a customer
-  // never silently ends up shopping a test store.
+  // Shared store-switcher modal state, so any page (not just the navbar) can
+  // open it -- e.g. Browse.jsx forces it open (mandatory) when no store is
+  // selected yet, instead of silently defaulting to one.
+  switcherOpen: false,
+  switcherMandatory: false,
+  openSwitcher: (mandatory = false) => set({ switcherOpen: true, switcherMandatory: mandatory }),
+  closeSwitcher: () => set({ switcherOpen: false, switcherMandatory: false }),
+
+  // Load approved stores once and resolve the active one from what's
+  // persisted -- no silent fallback to "the first store" anymore, so a
+  // customer with nothing chosen yet gets prompted (StoreSwitcherModal)
+  // rather than landing in an arbitrary store. `stores` includes
+  // internal/testing stores (StoreSwitcherModal filters those by role).
   ensureStores: async () => {
     if (get().loaded || get().loading) return;
     set({ loading: true });
     try {
       const stores = await listStores(STORE_STATUS.APPROVED);
       const savedId = localStorage.getItem(LS_KEY);
-      const selectable = stores.filter((s) => !s.internal);
-      const current = stores.find((s) => s.id === savedId) || selectable[0] || null;
-      if (current) localStorage.setItem(LS_KEY, current.id);
+      const current = stores.find((s) => s.id === savedId) || null;
       set({ stores, selectedStore: current, loaded: true, loading: false });
     } catch (e) {
       console.error('Failed to load stores', e);

@@ -14,7 +14,7 @@ import StoreImageSlider from '../../components/StoreImageSlider';
 import ProductModal from '../../components/ProductModal';
 
 export default function Browse() {
-  const { selectedStore, ensureStores, loaded } = useStoreSelection();
+  const { selectedStore, ensureStores, loaded, openSwitcher } = useStoreSelection();
   const store = selectedStore;
   const [products, setProducts] = useState([]);
   const [ratings, setRatings] = useState({});
@@ -25,6 +25,12 @@ export default function Browse() {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => { ensureStores(); }, [ensureStores]);
+
+  // No store chosen yet (first visit, or nothing persisted) -- force the
+  // picker open on top of this (empty) dashboard before showing any items.
+  useEffect(() => {
+    if (loaded && !selectedStore) openSwitcher(true);
+  }, [loaded, selectedStore, openSwitcher]);
 
   // Categories are global; loaded once.
   useEffect(() => { listCategories().then(setCategories).catch(() => {}); }, []);
