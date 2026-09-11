@@ -15,6 +15,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
+import CampaignIcon from '@mui/icons-material/Campaign';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { createServiceRequest } from '../../firebase/db';
@@ -29,6 +30,7 @@ const SERVICES = [
   { icon: CelebrationIcon, title: 'Events & Rituals', desc: 'Poojas, functions, and gifting arranged and attended on your behalf.' },
   { icon: DirectionsCarIcon, title: 'Vehicle Management', desc: 'RC transfer, insurance renewal, servicing, and PUC for your vehicles.' },
   { icon: AgricultureIcon, title: 'Land & Agriculture', desc: 'Farm oversight, lease management, and crop/harvest coordination.' },
+  { icon: CampaignIcon, title: 'Personal Branding & Digital Marketing', desc: 'Social media presence, content, and digital marketing for your personal brand or business in India.' },
 ];
 
 const SERVICE_TITLES = SERVICES.map((s) => s.title);
