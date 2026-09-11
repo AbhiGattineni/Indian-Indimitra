@@ -42,7 +42,7 @@ export default function Gateway() {
       }}
     >
       <Typography variant="overline" sx={{ letterSpacing: 3, color: 'primary.main', fontWeight: 700 }}>
-        Anupama Home Foods
+        Indimitra
       </Typography>
       <Typography
         variant="h3"

@@ -32,13 +32,18 @@ export default function Layout({ children }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, profile } = useAuthStore();
   const cartCount = useCartStore((s) => s.items.reduce((n, i) => n + i.qty, 0));
-  const { selectedStore, ensureStores } = useStoreSelection();
+  const {
+    selectedStore, ensureStores, switcherOpen, switcherMandatory, openSwitcher, closeSwitcher,
+  } = useStoreSelection();
   useCartSync();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  // The store switcher only makes sense once you're actually shopping --
+  // hidden on the landing gateway and the (store-unrelated) services page.
+  const showStoreSwitcher = location.pathname !== '/' && location.pathname !== '/services';
 
   useEffect(() => { ensureStores(); }, [ensureStores]);
 
@@ -80,22 +85,25 @@ export default function Layout({ children }) {
             <StorefrontIcon fontSize="small" />
           </Box>
 
-          {/* Store switcher pill */}
-          <Button
-            onClick={() => setSwitcherOpen(true)}
-            endIcon={<KeyboardArrowDownIcon />}
-            sx={{
-              minWidth: 0, maxWidth: { xs: 190, sm: 320 },
-              px: { xs: 1, sm: 1.5 }, py: 0.5,
-              borderRadius: 9999, border: '1px solid', borderColor: 'divider',
-              color: 'text.primary', textTransform: 'none',
-              '&:hover': { borderColor: 'text.primary', bgcolor: 'action.hover' },
-            }}
-          >
-            <Typography noWrap sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
-              {selectedStore?.name || 'Select a store'}
-            </Typography>
-          </Button>
+          {/* Store switcher pill -- only within the shopping flow, not on
+              the landing gateway or services page */}
+          {showStoreSwitcher && (
+            <Button
+              onClick={() => openSwitcher(false)}
+              endIcon={<KeyboardArrowDownIcon />}
+              sx={{
+                minWidth: 0, maxWidth: { xs: 190, sm: 320 },
+                px: { xs: 1, sm: 1.5 }, py: 0.5,
+                borderRadius: 9999, border: '1px solid', borderColor: 'divider',
+                color: 'text.primary', textTransform: 'none',
+                '&:hover': { borderColor: 'text.primary', bgcolor: 'action.hover' },
+              }}
+            >
+              <Typography noWrap sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
+                {selectedStore?.name || 'Select a store'}
+              </Typography>
+            </Button>
+          )}
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -212,10 +220,12 @@ export default function Layout({ children }) {
             <ListItemIcon><HomeIcon /></ListItemIcon>
             <ListItemText primary="Home" />
           </ListItemButton>
-          <ListItemButton onClick={() => { setDrawerOpen(false); setSwitcherOpen(true); }}>
-            <ListItemIcon><StorefrontIcon /></ListItemIcon>
-            <ListItemText primary="Change store" />
-          </ListItemButton>
+          {showStoreSwitcher && (
+            <ListItemButton onClick={() => { setDrawerOpen(false); openSwitcher(false); }}>
+              <ListItemIcon><StorefrontIcon /></ListItemIcon>
+              <ListItemText primary="Change store" />
+            </ListItemButton>
+          )}
           {navItems.map((item) => (
             <ListItemButton key={item.to} component={Link} to={item.to} onClick={() => setDrawerOpen(false)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
@@ -239,7 +249,7 @@ export default function Layout({ children }) {
         </List>
       </Drawer>
 
-      <StoreSwitcherModal open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
+      <StoreSwitcherModal open={switcherOpen} onClose={closeSwitcher} mandatory={switcherMandatory} />
 
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
         {children}
