@@ -235,6 +235,7 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
               <Row
                 label={`Packaging (+${(packedKg - totalKg).toFixed(2)} kg)`}
                 value={formatINR(packagingFee)}
+                info={`The box and packing material add real weight that ships with your order -- ${totalKg.toFixed(2)} kg of product becomes ${packedKg.toFixed(2)} kg once packed (+${(packedKg - totalKg).toFixed(2)} kg). Since shipping is priced by weight, that extra weight adds ${formatINR(packagingFee)} to the shipping cost.`}
               />
             )}
             <Row
