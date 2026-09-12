@@ -3,37 +3,26 @@
 // a Cloud Function emails the admin team.
 import { useState } from 'react';
 import {
-  Box, Typography, Grid, Card, CardContent, Paper, TextField, MenuItem, Button,
+  Box, Typography, Grid, Paper, TextField, MenuItem, Button,
   Stack, Chip, Alert, Divider, InputAdornment,
 } from '@mui/material';
-import HomeWorkIcon from '@mui/icons-material/HomeWork';
-import GavelIcon from '@mui/icons-material/Gavel';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import ElderlyIcon from '@mui/icons-material/Elderly';
-import HandymanIcon from '@mui/icons-material/Handyman';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import CelebrationIcon from '@mui/icons-material/Celebration';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import AgricultureIcon from '@mui/icons-material/Agriculture';
-import CampaignIcon from '@mui/icons-material/Campaign';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { createServiceRequest } from '../../firebase/db';
 
-const SERVICES = [
-  { icon: HomeWorkIcon, title: 'Property Management', desc: 'Rent collection, tenant coordination, and upkeep of your home, flat, or land.' },
-  { icon: GavelIcon, title: 'Legal & Documentation', desc: 'Power of Attorney, affidavits, notary, registrations, and certificate procurement.' },
-  { icon: AccountBalanceIcon, title: 'Banking & Taxation', desc: 'NRI/NRO accounts, PAN/Aadhaar, income-tax filing, and TDS on property sales.' },
-  { icon: ElderlyIcon, title: 'Parent & Elder Care', desc: 'Regular visits, doctor appointments, groceries, and wellness check-ins for family.' },
-  { icon: HandymanIcon, title: 'Home Repairs & Renovation', desc: 'Repairs, interiors, and construction — supervised on-site with photo/video updates.' },
-  { icon: ReceiptLongIcon, title: 'Bills & Utilities', desc: 'Electricity, water, property tax, insurance, and society dues paid on time.' },
-  { icon: CelebrationIcon, title: 'Events & Rituals', desc: 'Poojas, functions, and gifting arranged and attended on your behalf.' },
-  { icon: DirectionsCarIcon, title: 'Vehicle Management', desc: 'RC transfer, insurance renewal, servicing, and PUC for your vehicles.' },
-  { icon: AgricultureIcon, title: 'Land & Agriculture', desc: 'Farm oversight, lease management, and crop/harvest coordination.' },
-  { icon: CampaignIcon, title: 'Personal Branding & Digital Marketing', desc: 'Social media presence, content, and digital marketing for your personal brand or business in India.' },
-];
+const SERVICE_TITLES = [
+  'Property Management',
+  'Legal & Documentation',
+  'Banking & Taxation',
+  'Parent & Elder Care',
+  'Home Repairs & Renovation',
+  'Bills & Utilities',
+  'Events & Rituals',
+  'Vehicle Management',
+  'Land & Agriculture',
+  'Personal Branding & Digital Marketing',
+].sort((a, b) => a.localeCompare(b));
 
-const SERVICE_TITLES = SERVICES.map((s) => s.title);
 const TIMELINES = ['As soon as possible', 'Within 2 weeks', 'Within a month', 'Just exploring / flexible'];
 
 const EMPTY = {
@@ -116,32 +105,14 @@ export default function Services() {
         </Stack>
       </Box>
 
-      {/* Services grid */}
+      {/* Services list (A-Z) */}
       <Typography variant="h5" fontWeight={800} sx={{ mb: 0.5 }}>What we can do for you</Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
         Pick anything from the list below in the form — or describe something custom.
       </Typography>
-      <Grid container spacing={2} sx={{ mb: 5 }}>
-        {SERVICES.map((s) => (
-          <Grid item xs={12} sm={6} md={4} key={s.title}>
-            <Card variant="outlined" sx={{ height: '100%', borderRadius: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
-                  <Box sx={{
-                    width: 42, height: 42, borderRadius: 2, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    bgcolor: (t) => `${t.palette.primary.main}14`, color: 'primary.main',
-                  }}>
-                    <s.icon />
-                  </Box>
-                  <Typography fontWeight={700}>{s.title}</Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">{s.desc}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <Typography sx={{ mb: 5, lineHeight: 2 }}>
+        {SERVICE_TITLES.join(' • ')}
+      </Typography>
 
       {/* Request form */}
       <Paper elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', p: { xs: 2.5, md: 4 } }} id="request">
