@@ -84,7 +84,7 @@ export default function FdmManageStore() {
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
         <Tab label="Orders" sx={{ textTransform: 'none', fontWeight: 600 }} />
-        <Tab label="Listings" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Products" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Reviews" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Packaging" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
