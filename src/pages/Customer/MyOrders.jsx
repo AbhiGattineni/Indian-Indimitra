@@ -5,7 +5,9 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import { listOrdersByCustomer, updateOrderStatus } from '../../firebase/db';
+import {
+  listOrdersByCustomer, updateOrderStatus, listReviewsByCustomer, listOrderFeedbackByCustomer,
+} from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
@@ -25,10 +27,19 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [reviewingOrder, setReviewingOrder] = useState(null);
+  const [reviewedProductIds, setReviewedProductIds] = useState(new Set());
+  const [reviewedOrderIds, setReviewedOrderIds] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
-    setOrders(await listOrdersByCustomer(user.uid));
+    const [os, reviews, feedback] = await Promise.all([
+      listOrdersByCustomer(user.uid),
+      listReviewsByCustomer(user.uid),
+      listOrderFeedbackByCustomer(user.uid),
+    ]);
+    setOrders(os);
+    setReviewedProductIds(new Set(reviews.map((r) => r.productId)));
+    setReviewedOrderIds(new Set(feedback.map((f) => f.orderId)));
     setLoading(false);
   };
   useEffect(() => { if (user) load(); }, [user]);
@@ -105,7 +116,9 @@ export default function MyOrders() {
               )}
               {o.status === ORDER_STATUS.DELIVERED && (
                 <Button size="small" variant="outlined" onClick={() => setReviewingOrder(o)}>
-                  Review order
+                  {reviewedOrderIds.has(o.id) || o.items?.some((it) => reviewedProductIds.has(it.productId))
+                    ? 'Edit review'
+                    : 'Review order'}
                 </Button>
               )}
               <Button size="small" startIcon={<ReceiptLongIcon />} onClick={() => printCustomerInvoice(o, profile)}>
