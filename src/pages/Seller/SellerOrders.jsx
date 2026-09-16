@@ -7,7 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getStoreByOwner, listOrdersByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
-import { ROLES } from '../../lib/constants';
+import { ROLES, ORDER_STATUS } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
 import { formatAddressLine } from '../../lib/address';
 import OrderStatusChip from '../../components/OrderStatusChip';
@@ -62,7 +62,7 @@ export default function SellerOrders({ storeOverride }) {
           <AccordionDetails>
             <OrderItemsDiff order={o} />
             <OrderItemsEditLog orderId={o.id} />
-            {canManageStatus && (
+            {canManageStatus && ![ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED].includes(o.status) && (
               <Button size="small" startIcon={<EditIcon />} sx={{ mt: 1 }} onClick={() => setEditingOrder(o)}>
                 Edit order items
               </Button>
