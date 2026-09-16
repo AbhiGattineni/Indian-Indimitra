@@ -16,17 +16,15 @@ import OrderStatusChip from '../../components/OrderStatusChip';
 import OrderItemsDiff from '../../components/OrderItemsDiff';
 import OrderItemsEditLog from '../../components/OrderItemsEditLog';
 import EditOrderDialog from '../../components/EditOrderDialog';
-import RateItemDialog from '../../components/RateItemDialog';
 import TrackingStatus from '../../components/TrackingStatus';
-import OrderFeedbackDialog from '../../components/OrderFeedbackDialog';
+import ReviewOrderDialog from '../../components/ReviewOrderDialog';
 
 export default function MyOrders() {
   const { user, profile } = useAuthStore();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
-  const [rating, setRating] = useState(null); // { item, storeId }
-  const [feedbackOrder, setFeedbackOrder] = useState(null);
+  const [reviewingOrder, setReviewingOrder] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -105,47 +103,23 @@ export default function MyOrders() {
                   Cancel order
                 </Button>
               )}
-              <Button size="small" onClick={() => setFeedbackOrder(o)}>
-                Feedback about this order
-              </Button>
+              {o.status === ORDER_STATUS.DELIVERED && (
+                <Button size="small" variant="outlined" onClick={() => setReviewingOrder(o)}>
+                  Review order
+                </Button>
+              )}
               <Button size="small" startIcon={<ReceiptLongIcon />} onClick={() => printCustomerInvoice(o, profile)}>
                 View invoice
               </Button>
             </Box>
-            {o.status === ORDER_STATUS.DELIVERED && (
-              <Box sx={{ mt: 1 }}>
-                <Divider sx={{ mb: 1 }} />
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  Rate your items
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {o.items?.map((it) => (
-                    <Button
-                      key={it.lineId || it.productId}
-                      size="small"
-                      variant="outlined"
-                      onClick={() => setRating({ item: it, storeId: o.storeId })}
-                    >
-                      Rate {it.name}
-                    </Button>
-                  ))}
-                </Box>
-              </Box>
-            )}
           </AccordionDetails>
         </Accordion>
         );
       })}
       <EditOrderDialog order={editing} onClose={() => setEditing(null)} onSaved={load} />
-      <RateItemDialog
-        item={rating?.item}
-        storeId={rating?.storeId}
-        onClose={() => setRating(null)}
-        onSaved={load}
-      />
-      <OrderFeedbackDialog
-        order={feedbackOrder}
-        onClose={() => setFeedbackOrder(null)}
+      <ReviewOrderDialog
+        order={reviewingOrder}
+        onClose={() => setReviewingOrder(null)}
         onSaved={load}
       />
     </Box>
