@@ -254,6 +254,12 @@ export async function listReviewsByStore(storeId) {
   const snap = await getDocs(query(collection(db, 'reviews'), where('storeId', '==', storeId)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
+// Every review this customer has left, across all products/orders — used to
+// show "Edit review" instead of "Review order" once one exists.
+export async function listReviewsByCustomer(uid) {
+  const snap = await getDocs(query(collection(db, 'reviews'), where('customerUid', '==', uid)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 export async function upsertReview(id, data) {
   return setDoc(doc(db, 'reviews', id), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
@@ -272,6 +278,13 @@ export async function getOrderFeedback(orderId) {
 // unlike getOrderFeedback(orderId) which FDM can also call per-order.
 export async function listAllOrderFeedback() {
   const snap = await getDocs(collection(db, 'orderFeedback'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+// A customer's own order feedback docs (rules permit this: customerUid ==
+// auth.uid matches every doc the query can return) — same "Edit" purpose
+// as listReviewsByCustomer above.
+export async function listOrderFeedbackByCustomer(uid) {
+  const snap = await getDocs(query(collection(db, 'orderFeedback'), where('customerUid', '==', uid)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 export async function upsertOrderFeedback(orderId, data) {
