@@ -8,7 +8,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EditIcon from '@mui/icons-material/Edit';
 import { getUserProfile } from '../firebase/db';
 import { formatINR, cartWeightKg } from '../lib/calculations';
-import { paymentLabel } from '../lib/constants';
+import { paymentLabel, ORDER_STATUS } from '../lib/constants';
 import { printInvoice } from '../lib/invoice';
 import OrderStatusChip from './OrderStatusChip';
 import OrderItemsDiff from './OrderItemsDiff';
@@ -76,14 +76,16 @@ export default function AdminOrderDetailDialog({ order, onClose, onChanged }) {
 
         <Typography variant="subtitle2" gutterBottom>Status</Typography>
         <OrderStatusActions order={order} onChanged={onChanged} />
-        <Button
-          size="small"
-          startIcon={<EditIcon />}
-          sx={{ mt: 1 }}
-          onClick={() => setEditing(true)}
-        >
-          Edit order items
-        </Button>
+        {![ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED].includes(order.status) && (
+          <Button
+            size="small"
+            startIcon={<EditIcon />}
+            sx={{ mt: 1 }}
+            onClick={() => setEditing(true)}
+          >
+            Edit order items
+          </Button>
+        )}
         <OrderFeedbackView orderId={order.id} />
 
         {order.shipment?.trackingNumber && (
