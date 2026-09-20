@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Chip,
-  CircularProgress, Alert,
+  CircularProgress, Alert, InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -33,6 +34,7 @@ export default function SellerListings({ storeOverride }) {
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   const load = async (s) => {
     const st = s || storeOverride || (await getStoreByOwner(user.uid));
@@ -89,12 +91,23 @@ export default function SellerListings({ storeOverride }) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}><CircularProgress /></Box>;
   }
 
+  const filtered = products.filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5">My listings</Typography>
         <Button variant="contained" onClick={openNew}>Add listing</Button>
       </Box>
+
+      <TextField
+        placeholder="Search products"
+        size="small"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 2, minWidth: 260 }}
+        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+      />
 
       <TableContainer>
         <Table>
@@ -108,7 +121,7 @@ export default function SellerListings({ storeOverride }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((p) => (
+            {filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>{p.name}</TableCell>
                 <TableCell align="right">{formatINR(p.price)}</TableCell>
