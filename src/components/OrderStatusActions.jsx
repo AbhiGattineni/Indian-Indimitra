@@ -8,7 +8,8 @@ import { useState } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack,
 } from '@mui/material';
-import { updateOrderStatus, logOrderStatusChange } from '../firebase/db';
+import EditIcon from '@mui/icons-material/Edit';
+import { updateOrderStatus, updateOrder, logOrderStatusChange } from '../firebase/db';
 import { useAuthStore } from '../store/useAuthStore';
 import { ORDER_STATUS, orderStatusLabel } from '../lib/constants';
 import OrderStatusLog from './OrderStatusLog';
@@ -17,6 +18,8 @@ export default function OrderStatusActions({ order, onChanged }) {
   const { user, profile } = useAuthStore();
   const [transitOpen, setTransitOpen] = useState(false);
   const [transit, setTransit] = useState({ courierName: 'UPS', trackingNumber: '', trackingUrl: '' });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTransit, setEditTransit] = useState({ courierName: '', trackingNumber: '', trackingUrl: '' });
 
   const logChange = (status) => logOrderStatusChange(order.id, {
     status,
@@ -41,6 +44,23 @@ export default function OrderStatusActions({ order, onChanged }) {
     onChanged?.();
   };
 
+  const openEditTracking = () => {
+    setEditTransit({
+      courierName: order.shipment?.courierName || '',
+      trackingNumber: order.shipment?.trackingNumber || '',
+      trackingUrl: order.shipment?.trackingUrl || '',
+    });
+    setEditOpen(true);
+  };
+
+  const saveEditTracking = async () => {
+    await updateOrder(order.id, {
+      shipment: { ...order.shipment, ...editTransit },
+    });
+    setEditOpen(false);
+    onChanged?.();
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -59,6 +79,11 @@ export default function OrderStatusActions({ order, onChanged }) {
         {order.status === ORDER_STATUS.IN_TRANSIT && (
           <Button variant="contained" color="success" onClick={() => setStatus(ORDER_STATUS.DELIVERED)}>
             Mark delivered
+          </Button>
+        )}
+        {order.shipment?.trackingNumber && (
+          <Button size="small" startIcon={<EditIcon fontSize="small" />} onClick={openEditTracking}>
+            Edit tracking info
           </Button>
         )}
       </Box>
@@ -81,6 +106,26 @@ export default function OrderStatusActions({ order, onChanged }) {
           <Button onClick={() => setTransitOpen(false)}>Cancel</Button>
           <Button variant="contained" disabled={!transit.trackingNumber.trim()} onClick={confirmInTransit}>
             Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Edit tracking info</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Carrier" value={editTransit.courierName}
+              onChange={(e) => setEditTransit({ ...editTransit, courierName: e.target.value })} />
+            <TextField label="Tracking number" required value={editTransit.trackingNumber}
+              onChange={(e) => setEditTransit({ ...editTransit, trackingNumber: e.target.value })} />
+            <TextField label="Tracking URL (optional)" value={editTransit.trackingUrl}
+              onChange={(e) => setEditTransit({ ...editTransit, trackingUrl: e.target.value })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" disabled={!editTransit.trackingNumber.trim()} onClick={saveEditTracking}>
+            Save
           </Button>
         </DialogActions>
       </Dialog>
