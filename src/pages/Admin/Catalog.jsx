@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Chip, Button,
-  CircularProgress, Alert,
+  CircularProgress, Alert, InputAdornment,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import SearchIcon from '@mui/icons-material/Search';
 import {
   listStores, updateStore, listAllProducts, listCategories, updateProduct, deleteProduct,
 } from '../../firebase/db';
@@ -209,6 +210,7 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY_PRODUCT, ...p }); setError(''); setOpen(true); };
 
@@ -247,8 +249,22 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
     onSaved();
   };
 
+  const filtered = products.filter((p) => {
+    const q = search.toLowerCase();
+    return p.name?.toLowerCase().includes(q) || (storeNameById[p.storeId] || '').toLowerCase().includes(q);
+  });
+
   return (
     <>
+      <TextField
+        placeholder="Search products or stores"
+        size="small"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 2, minWidth: 260 }}
+        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+      />
+
       <TableContainer>
         <Table>
           <TableHead>
@@ -263,7 +279,7 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((p) => (
+            {filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>
                   {p.imageUrl && (
