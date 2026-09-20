@@ -126,7 +126,13 @@ export default function SellerListings({ storeOverride }) {
                 <TableCell>{p.name}</TableCell>
                 <TableCell align="right">{formatINR(p.price)}</TableCell>
                 <TableCell align="right">{p.quantity} {p.unit}</TableCell>
-                <TableCell><Chip size="small" label={p.status} /></TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={p.status}
+                    color={p.status === PRODUCT_STATUS.ACTIVE ? 'success' : 'error'}
+                  />
+                </TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
                   <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
