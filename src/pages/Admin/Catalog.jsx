@@ -8,12 +8,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
 import {
-  listStores, updateStore, listAllProducts, listCategories, updateProduct, deleteProduct,
+  listStores, updateStore, createStore, getUserByEmail, setUserRole,
+  listAllProducts, listCategories, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
 import { formatINR } from '../../lib/calculations';
-import { PRODUCT_STATUS, STORE_STATUS } from '../../lib/constants';
+import { PRODUCT_STATUS, STORE_STATUS, ROLES } from '../../lib/constants';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 
 export default function Catalog() {
@@ -62,6 +64,11 @@ const EMPTY_STORE = {
   approvalStatus: STORE_STATUS.PENDING, imageUrl: '',
 };
 
+const EMPTY_NEW_STORE = {
+  ownerEmail: '', name: '', description: '', pickupAddress: '',
+  shippingFlatFee: 0, freeShippingThreshold: 0,
+};
+
 function StoresTab({ stores, onSaved }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -69,12 +76,54 @@ function StoresTab({ stores, onSaved }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [packagingStore, setPackagingStore] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState(EMPTY_NEW_STORE);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState('');
 
   const openEdit = (s) => {
     setEditing(s);
     setForm({ ...EMPTY_STORE, ...s, imageUrl: s.images?.[0] || s.imageUrl || '' });
     setError('');
     setOpen(true);
+  };
+
+  const openAdd = () => { setAddForm(EMPTY_NEW_STORE); setAddError(''); setAddOpen(true); };
+
+  // Onboard a business directly (skipping the pending-approval queue): looks
+  // up the owner by email (they must have signed in at least once) and
+  // promotes a plain customer to seller, same as SellerApprovals' approve().
+  const createStoreDirect = async () => {
+    const email = addForm.ownerEmail.trim().toLowerCase();
+    if (!email || !addForm.name || !addForm.pickupAddress) {
+      setAddError('Owner email, store name and pickup address are required.');
+      return;
+    }
+    setAddSaving(true);
+    setAddError('');
+    try {
+      const owner = await getUserByEmail(email);
+      if (!owner) {
+        setAddError(`No account found for ${email}. Ask them to sign in once first, then add the store.`);
+        return;
+      }
+      await createStore(owner.id, {
+        name: addForm.name,
+        description: addForm.description,
+        pickupAddress: addForm.pickupAddress,
+        shippingFlatFee: Number(addForm.shippingFlatFee) || 0,
+        freeShippingThreshold: Number(addForm.freeShippingThreshold) || 0,
+        images: [],
+        approvalStatus: STORE_STATUS.APPROVED,
+      });
+      if (owner.role === ROLES.CUSTOMER) await setUserRole(owner.id, ROLES.SELLER);
+      setAddOpen(false);
+      onSaved();
+    } catch (e) {
+      setAddError(e.message);
+    } finally {
+      setAddSaving(false);
+    }
   };
 
   const handleFile = async (e) => {
@@ -111,6 +160,10 @@ function StoresTab({ stores, onSaved }) {
 
   return (
     <>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>Add store</Button>
+      </Box>
+
       <TableContainer>
         <Table>
           <TableHead>
@@ -176,6 +229,42 @@ function StoresTab({ stores, onSaved }) {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Add store</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Owner's email" value={addForm.ownerEmail}
+              onChange={(e) => setAddForm({ ...addForm, ownerEmail: e.target.value })}
+              placeholder="they must have signed in at least once"
+            />
+            <TextField label="Name" value={addForm.name}
+              onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
+            <TextField label="Description" multiline rows={2} value={addForm.description}
+              onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} />
+            <TextField label="Pickup address" value={addForm.pickupAddress}
+              onChange={(e) => setAddForm({ ...addForm, pickupAddress: e.target.value })} />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Flat shipping fee (₹)" type="number" value={addForm.shippingFlatFee}
+                onChange={(e) => setAddForm({ ...addForm, shippingFlatFee: e.target.value })} fullWidth />
+              <TextField label="Free shipping over (₹)" type="number" value={addForm.freeShippingThreshold}
+                onChange={(e) => setAddForm({ ...addForm, freeShippingThreshold: e.target.value })} fullWidth />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              Created as approved — skips the pending-approval queue. Add an image and packaging chart
+              afterward from the store's row.
+            </Typography>
+            {addError && <Alert severity="error">{addError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={createStoreDirect} disabled={addSaving}>
+            {addSaving ? 'Adding…' : 'Add store'}
+          </Button>
         </DialogActions>
       </Dialog>
 
