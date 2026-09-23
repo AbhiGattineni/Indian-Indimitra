@@ -61,9 +61,39 @@ export default function Catalog() {
 
 /* ---------------- Stores ---------------- */
 
+// Multi-select of FDMs, shared by the Add-store and Edit-store dialogs.
+function FdmAssignSelect({ idPrefix, fdms, value, onChange }) {
+  const labelId = `${idPrefix}-fdms-label`;
+  return (
+    <FormControl fullWidth>
+      <InputLabel id={labelId}>Assign managers (optional)</InputLabel>
+      <Select
+        labelId={labelId}
+        multiple
+        input={<OutlinedInput label="Assign managers (optional)" />}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        renderValue={(selected) => fdms
+          .filter((f) => selected.includes(f.id))
+          .map((f) => f.displayName || f.email)
+          .join(', ')}
+      >
+        {fdms.length === 0 ? (
+          <MenuItem disabled>No managers yet — add one under Managers.</MenuItem>
+        ) : fdms.map((f) => (
+          <MenuItem key={f.id} value={f.id}>
+            <Checkbox checked={value.includes(f.id)} />
+            <ListItemText primary={f.displayName || f.email} secondary={f.email} />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
+
 const EMPTY_STORE = {
   name: '', description: '', pickupAddress: '', shippingFlatFee: 0, freeShippingThreshold: 0,
-  approvalStatus: STORE_STATUS.PENDING, imageUrl: '',
+  approvalStatus: STORE_STATUS.PENDING, imageUrl: '', fdmUids: [],
 };
 
 const EMPTY_NEW_STORE = {
@@ -88,7 +118,7 @@ function StoresTab({ stores, onSaved }) {
 
   const openEdit = (s) => {
     setEditing(s);
-    setForm({ ...EMPTY_STORE, ...s, imageUrl: s.images?.[0] || s.imageUrl || '' });
+    setForm({ ...EMPTY_STORE, ...s, imageUrl: s.images?.[0] || s.imageUrl || '', fdmUids: s.fdmUids || [] });
     setError('');
     setOpen(true);
   };
@@ -157,6 +187,7 @@ function StoresTab({ stores, onSaved }) {
         freeShippingThreshold: Number(form.freeShippingThreshold) || 0,
         approvalStatus: form.approvalStatus,
         images: form.imageUrl ? [form.imageUrl] : [],
+        fdmUids: form.fdmUids,
       });
       setOpen(false);
       onSaved();
@@ -223,6 +254,12 @@ function StoresTab({ stores, onSaved }) {
               onChange={(e) => setForm({ ...form, approvalStatus: e.target.value })}>
               {Object.values(STORE_STATUS).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
             </TextField>
+            <FdmAssignSelect
+              idPrefix="edit-store"
+              fdms={fdms}
+              value={form.fdmUids}
+              onChange={(fdmUids) => setForm({ ...form, fdmUids })}
+            />
             <Button component="label" variant="outlined" disabled={uploading}>
               {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
               <input hidden type="file" accept="image/*" onChange={handleFile} />
@@ -260,29 +297,12 @@ function StoresTab({ stores, onSaved }) {
               <TextField label="Free shipping over (₹)" type="number" value={addForm.freeShippingThreshold}
                 onChange={(e) => setAddForm({ ...addForm, freeShippingThreshold: e.target.value })} fullWidth />
             </Box>
-            <FormControl fullWidth>
-              <InputLabel id="add-store-fdms-label">Assign managers (optional)</InputLabel>
-              <Select
-                labelId="add-store-fdms-label"
-                multiple
-                input={<OutlinedInput label="Assign managers (optional)" />}
-                value={addForm.fdmUids}
-                onChange={(e) => setAddForm({ ...addForm, fdmUids: e.target.value })}
-                renderValue={(selected) => fdms
-                  .filter((f) => selected.includes(f.id))
-                  .map((f) => f.displayName || f.email)
-                  .join(', ')}
-              >
-                {fdms.length === 0 ? (
-                  <MenuItem disabled>No managers yet — add one under Deployment Managers.</MenuItem>
-                ) : fdms.map((f) => (
-                  <MenuItem key={f.id} value={f.id}>
-                    <Checkbox checked={addForm.fdmUids.includes(f.id)} />
-                    <ListItemText primary={f.displayName || f.email} secondary={f.email} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <FdmAssignSelect
+              idPrefix="add-store"
+              fdms={fdms}
+              value={addForm.fdmUids}
+              onChange={(fdmUids) => setAddForm({ ...addForm, fdmUids })}
+            />
             <Typography variant="caption" color="text.secondary">
               Created as approved — skips the pending-approval queue. Add an image and packaging chart
               afterward from the store's row.
