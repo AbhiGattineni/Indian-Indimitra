@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TableContainer,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Chip, Button,
-  CircularProgress, Alert, InputAdornment,
+  CircularProgress, Alert, InputAdornment, FormControl, InputLabel, Select, OutlinedInput, Checkbox, ListItemText,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -10,8 +10,8 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import {
-  listStores, updateStore, createStore, getUserByEmail, setUserRole,
-  listAllProducts, listCategories, updateProduct, deleteProduct,
+  listStores, updateStore, createStore, getUserByEmail, setUserRole, listUsersByRole,
+  listAllProducts, listCategories, createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
 import { formatINR } from '../../lib/calculations';
@@ -51,7 +51,9 @@ export default function Catalog() {
 
       {tab === 'stores' && <StoresTab stores={stores} onSaved={load} />}
       {tab === 'products' && (
-        <ProductsTab products={products} categories={categories} storeNameById={storeNameById} onSaved={load} />
+        <ProductsTab
+          products={products} categories={categories} stores={stores} storeNameById={storeNameById} onSaved={load}
+        />
       )}
     </Box>
   );
@@ -66,7 +68,7 @@ const EMPTY_STORE = {
 
 const EMPTY_NEW_STORE = {
   ownerEmail: '', name: '', description: '', pickupAddress: '',
-  shippingFlatFee: 0, freeShippingThreshold: 0,
+  shippingFlatFee: 0, freeShippingThreshold: 0, fdmUids: [],
 };
 
 function StoresTab({ stores, onSaved }) {
@@ -80,6 +82,9 @@ function StoresTab({ stores, onSaved }) {
   const [addForm, setAddForm] = useState(EMPTY_NEW_STORE);
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState('');
+  const [fdms, setFdms] = useState([]);
+
+  useEffect(() => { listUsersByRole(ROLES.FDM).then(setFdms); }, []);
 
   const openEdit = (s) => {
     setEditing(s);
@@ -91,8 +96,9 @@ function StoresTab({ stores, onSaved }) {
   const openAdd = () => { setAddForm(EMPTY_NEW_STORE); setAddError(''); setAddOpen(true); };
 
   // Onboard a business directly (skipping the pending-approval queue): looks
-  // up the owner by email (they must have signed in at least once) and
-  // promotes a plain customer to seller, same as SellerApprovals' approve().
+  // up the owner by email (they must have signed in at least once), promotes
+  // a plain customer to seller (same as SellerApprovals' approve()), and
+  // optionally assigns one or more FDMs to run it right away.
   const createStoreDirect = async () => {
     const email = addForm.ownerEmail.trim().toLowerCase();
     if (!email || !addForm.name || !addForm.pickupAddress) {
@@ -115,6 +121,7 @@ function StoresTab({ stores, onSaved }) {
         freeShippingThreshold: Number(addForm.freeShippingThreshold) || 0,
         images: [],
         approvalStatus: STORE_STATUS.APPROVED,
+        fdmUids: addForm.fdmUids,
       });
       if (owner.role === ROLES.CUSTOMER) await setUserRole(owner.id, ROLES.SELLER);
       setAddOpen(false);
@@ -253,6 +260,29 @@ function StoresTab({ stores, onSaved }) {
               <TextField label="Free shipping over (₹)" type="number" value={addForm.freeShippingThreshold}
                 onChange={(e) => setAddForm({ ...addForm, freeShippingThreshold: e.target.value })} fullWidth />
             </Box>
+            <FormControl fullWidth>
+              <InputLabel id="add-store-fdms-label">Assign managers (optional)</InputLabel>
+              <Select
+                labelId="add-store-fdms-label"
+                multiple
+                input={<OutlinedInput label="Assign managers (optional)" />}
+                value={addForm.fdmUids}
+                onChange={(e) => setAddForm({ ...addForm, fdmUids: e.target.value })}
+                renderValue={(selected) => fdms
+                  .filter((f) => selected.includes(f.id))
+                  .map((f) => f.displayName || f.email)
+                  .join(', ')}
+              >
+                {fdms.length === 0 ? (
+                  <MenuItem disabled>No managers yet — add one under Deployment Managers.</MenuItem>
+                ) : fdms.map((f) => (
+                  <MenuItem key={f.id} value={f.id}>
+                    <Checkbox checked={addForm.fdmUids.includes(f.id)} />
+                    <ListItemText primary={f.displayName || f.email} secondary={f.email} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Typography variant="caption" color="text.secondary">
               Created as approved — skips the pending-approval queue. Add an image and packaging chart
               afterward from the store's row.
@@ -293,15 +323,57 @@ const EMPTY_PRODUCT = {
   status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
-function ProductsTab({ products, categories, storeNameById, onSaved }) {
+const EMPTY_NEW_PRODUCT = {
+  storeId: '', name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit',
+  status: PRODUCT_STATUS.ACTIVE, warning: '',
+};
+
+function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState(EMPTY_NEW_PRODUCT);
+  const [addError, setAddError] = useState('');
+  const [addSaving, setAddSaving] = useState(false);
 
   const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY_PRODUCT, ...p }); setError(''); setOpen(true); };
+
+  const openAdd = () => { setAddForm(EMPTY_NEW_PRODUCT); setAddError(''); setAddOpen(true); };
+
+  const createProductDirect = async () => {
+    if (!addForm.storeId || !addForm.name || !addForm.categoryId) {
+      setAddError('Store, name and category are required.');
+      return;
+    }
+    setAddSaving(true);
+    setAddError('');
+    try {
+      const store = stores.find((s) => s.id === addForm.storeId);
+      await createProduct({
+        storeId: addForm.storeId,
+        ownerUid: store?.ownerUid || '',
+        name: addForm.name,
+        description: addForm.description,
+        categoryId: addForm.categoryId,
+        price: Number(addForm.price) || 0,
+        quantity: Number(addForm.quantity) || 0,
+        unit: addForm.unit,
+        imageUrl: '',
+        status: addForm.status,
+        warning: addForm.warning,
+      });
+      setAddOpen(false);
+      onSaved();
+    } catch (e) {
+      setAddError(e.message);
+    } finally {
+      setAddSaving(false);
+    }
+  };
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -345,14 +417,17 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
 
   return (
     <>
-      <TextField
-        placeholder="Search products or stores"
-        size="small"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2, minWidth: 260 }}
-        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <TextField
+          placeholder="Search products or stores"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ minWidth: 260 }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+        />
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>Add product</Button>
+      </Box>
 
       <TableContainer>
         <Table>
@@ -441,6 +516,56 @@ function ProductsTab({ products, categories, storeNameById, onSaved }) {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Add product</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField select label="Store" value={addForm.storeId}
+              onChange={(e) => setAddForm({ ...addForm, storeId: e.target.value })}>
+              {stores.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+            </TextField>
+            <TextField label="Name" value={addForm.name}
+              onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
+            <TextField label="Description" multiline rows={2} value={addForm.description}
+              onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} />
+            <TextField select label="Category" value={addForm.categoryId}
+              onChange={(e) => setAddForm({ ...addForm, categoryId: e.target.value })}>
+              {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+            </TextField>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Price (₹)" type="number" value={addForm.price}
+                onChange={(e) => setAddForm({ ...addForm, price: e.target.value })} fullWidth />
+              <TextField label="Quantity" type="number" value={addForm.quantity}
+                onChange={(e) => setAddForm({ ...addForm, quantity: e.target.value })} fullWidth />
+              <TextField label="Unit" value={addForm.unit}
+                onChange={(e) => setAddForm({ ...addForm, unit: e.target.value })} sx={{ width: 120 }} />
+            </Box>
+            <TextField select label="Status" value={addForm.status}
+              onChange={(e) => setAddForm({ ...addForm, status: e.target.value })}>
+              <MenuItem value={PRODUCT_STATUS.ACTIVE}>Active</MenuItem>
+              <MenuItem value={PRODUCT_STATUS.UNLISTED}>Unlisted</MenuItem>
+            </TextField>
+            <TextField
+              label="Warning (optional)"
+              placeholder="e.g. Shelf life: 3 days, including travel."
+              helperText="Shown to customers in red on the product card and detail page."
+              value={addForm.warning}
+              onChange={(e) => setAddForm({ ...addForm, warning: e.target.value })}
+            />
+            <Typography variant="caption" color="text.secondary">
+              Add an image afterward by editing the product.
+            </Typography>
+            {addError && <Alert severity="error">{addError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={createProductDirect} disabled={addSaving}>
+            {addSaving ? 'Adding…' : 'Add product'}
+          </Button>
         </DialogActions>
       </Dialog>
     </>
