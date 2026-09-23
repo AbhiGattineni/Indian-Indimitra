@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
   MenuItem, CircularProgress, Rating,
@@ -23,13 +23,21 @@ export default function Browse() {
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const promptedRef = useRef(false);
 
   useEffect(() => { ensureStores(); }, [ensureStores]);
 
-  // No store chosen yet (first visit, or nothing persisted) -- force the
-  // picker open on top of this (empty) dashboard before showing any items.
+  // Show the store picker once per visit to this page, so a customer always
+  // sees the full list of businesses (not just whichever one they're already
+  // in) -- mandatory (no close button) only when nothing is selected yet;
+  // otherwise dismissible, since they can just keep shopping their last
+  // store. Guarded by a ref so it doesn't reopen every time selectedStore
+  // changes (e.g. right after they pick one from it).
   useEffect(() => {
-    if (loaded && !selectedStore) openSwitcher(true);
+    if (loaded && !promptedRef.current) {
+      promptedRef.current = true;
+      openSwitcher(!selectedStore);
+    }
   }, [loaded, selectedStore, openSwitcher]);
 
   // Categories are global; loaded once.
