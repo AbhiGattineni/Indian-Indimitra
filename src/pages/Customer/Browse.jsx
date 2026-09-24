@@ -4,7 +4,7 @@ import {
   MenuItem, CircularProgress, Rating,
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { listCategories, listProductsByStore, listReviewsByStore } from '../../firebase/db';
+import { listCategoriesByStore, listProductsByStore, listReviewsByStore } from '../../firebase/db';
 import { formatINR, customerPricePerKg } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
 import { PRODUCT_STATUS } from '../../lib/constants';
@@ -40,8 +40,15 @@ export default function Browse() {
     }
   }, [loaded, selectedStore, openSwitcher]);
 
-  // Categories are global; loaded once.
-  useEffect(() => { listCategories().then(setCategories).catch(() => {}); }, []);
+  // Categories are each store's own -- reload whenever the store changes,
+  // and drop any category filter that no longer applies to it.
+  useEffect(() => {
+    setCategory('all');
+    if (!store) { setCategories([]); return; }
+    listCategoriesByStore(store.id)
+      .then((c) => setCategories(c.filter((x) => x.enabled !== false)))
+      .catch(() => setCategories([]));
+  }, [store?.id]);
 
   // Load the selected store's active products (+ ratings, for the small
   // per-card badge) whenever the store changes.

@@ -63,9 +63,13 @@ service cloud.firestore {
     }
 
     // ---------- categories ----------
+    // Legacy docs (from before per-store categories) have no storeId and are
+    // admin-only, same as always. New docs carry a storeId -- admin or that
+    // store's assigned FDM may manage them.
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAdmin() || isAssignedFdm(request.resource.data.storeId);
+      allow update, delete: if isAdmin() || isAssignedFdm(resource.data.storeId);
     }
 
     // ---------- stores ----------
