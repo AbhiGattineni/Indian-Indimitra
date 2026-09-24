@@ -1,43 +1,49 @@
+// Categories belong to one store (see StoreCategoriesEditor) -- this page is
+// just a store picker in front of the same editor FDM gets from their Manage
+// store > Categories tab, so admin can manage any store's categories here
+// too without going through Stores & products.
 import { useEffect, useState } from 'react';
-import {
-  Box, Typography, TextField, Button, List, ListItem, ListItemText, IconButton, Paper,
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { listCategories, createCategory, deleteCategory } from '../../firebase/db';
+import { Box, Typography, TextField, MenuItem, CircularProgress } from '@mui/material';
+import { listStores } from '../../firebase/db';
+import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 
 export default function Categories() {
-  const [categories, setCategories] = useState([]);
-  const [name, setName] = useState('');
+  const [stores, setStores] = useState([]);
+  const [storeId, setStoreId] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => setCategories(await listCategories());
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    listStores().then((s) => {
+      setStores(s);
+      setLoading(false);
+    });
+  }, []);
 
-  const add = async () => {
-    if (!name.trim()) return;
-    await createCategory(name.trim());
-    setName('');
-    load();
-  };
-  const remove = async (id) => { await deleteCategory(id); load(); };
+  const store = stores.find((s) => s.id === storeId) || null;
+
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}><CircularProgress /></Box>;
+  }
 
   return (
-    <Box sx={{ maxWidth: 480 }}>
+    <Box sx={{ maxWidth: 640 }}>
       <Typography variant="h5" gutterBottom>Categories</Typography>
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <TextField size="small" label="New category" value={name}
-          onChange={(e) => setName(e.target.value)} fullWidth />
-        <Button variant="contained" onClick={add}>Add</Button>
-      </Box>
-      <Paper variant="outlined">
-        <List>
-          {categories.map((c) => (
-            <ListItem key={c.id}
-              secondaryAction={<IconButton onClick={() => remove(c.id)}><DeleteIcon /></IconButton>}>
-              <ListItemText primary={c.name} />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Each store has its own categories. Pick a store to add, rename, or enable/disable its categories.
+      </Typography>
+
+      {stores.length === 0 ? (
+        <Typography color="text.secondary">No stores yet.</Typography>
+      ) : (
+        <TextField
+          select label="Store" value={storeId} fullWidth sx={{ mb: 3, maxWidth: 360 }}
+          onChange={(e) => setStoreId(e.target.value)}
+        >
+          {stores.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+        </TextField>
+      )}
+
+      {store && <StoreCategoriesEditor store={store} />}
     </Box>
   );
 }

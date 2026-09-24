@@ -69,16 +69,24 @@ export async function setShippingRates(data, updatedByEmail) {
   }, { merge: true });
 }
 
-/* ---------------- Categories ---------------- */
-export async function listCategories() {
-  const snap = await getDocs(query(collection(db, 'categories'), orderBy('name')));
+/* ---------------- Per-store categories (each store owns its own list) --- */
+export async function listCategoriesByStore(storeId) {
+  const snap = await getDocs(query(collection(db, 'categories'), where('storeId', '==', storeId)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
-export async function createCategory(name) {
-  return addDoc(collection(db, 'categories'), { name, createdAt: serverTimestamp() });
+// Unfiltered, for admin's cross-store product picker (Catalog.jsx), which
+// needs every store's categories at once rather than one store at a time.
+export async function listAllCategories() {
+  const snap = await getDocs(collection(db, 'categories'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
-export async function deleteCategory(id) {
-  return deleteDoc(doc(db, 'categories', id));
+export async function createStoreCategory(storeId, name) {
+  return addDoc(collection(db, 'categories'), {
+    storeId, name, enabled: true, createdAt: serverTimestamp(),
+  });
+}
+export async function updateCategory(id, data) {
+  return updateDoc(doc(db, 'categories', id), data);
 }
 
 /* ---------------- Per-store categories (each store owns its own list; --- */
