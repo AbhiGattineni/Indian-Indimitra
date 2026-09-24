@@ -69,20 +69,7 @@ export async function setShippingRates(data, updatedByEmail) {
   }, { merge: true });
 }
 
-/* ---------------- Categories ---------------- */
-export async function listCategories() {
-  const snap = await getDocs(query(collection(db, 'categories'), orderBy('name')));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-export async function createCategory(name) {
-  return addDoc(collection(db, 'categories'), { name, createdAt: serverTimestamp() });
-}
-export async function deleteCategory(id) {
-  return deleteDoc(doc(db, 'categories', id));
-}
-
-/* ---------------- Per-store categories (each store owns its own list; --- */
-/* legacy categories above have no storeId and stay admin-only/global) --- */
+/* ---------------- Per-store categories (each store owns its own list) --- */
 export async function listCategoriesByStore(storeId) {
   const snap = await getDocs(query(collection(db, 'categories'), where('storeId', '==', storeId)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
