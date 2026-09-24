@@ -9,7 +9,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
-  getStoreByOwner, listProductsByStore, listCategories,
+  getStoreByOwner, listProductsByStore, listCategoriesByStore,
   createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
@@ -39,12 +39,25 @@ export default function SellerListings({ storeOverride }) {
   const load = async (s) => {
     const st = s || storeOverride || (await getStoreByOwner(user.uid));
     setStore(st);
-    const [p, c] = await Promise.all([listProductsByStore(st.id), listCategories()]);
+    const [p, c] = await Promise.all([listProductsByStore(st.id), listCategoriesByStore(st.id)]);
     setProducts(p);
     setCategories(c);
     setLoading(false);
   };
   useEffect(() => { if (user) load(storeOverride); }, [user, storeOverride?.id]);
+
+  // Only this store's own enabled categories are offered -- plus, when
+  // editing, whatever category the product is already set to (even if since
+  // disabled, or a pre-per-store-categories legacy one), so the field
+  // doesn't just go blank for existing data.
+  const categoryOptions = (currentId) => {
+    const opts = categories.filter((c) => c.enabled !== false);
+    if (currentId && !opts.some((c) => c.id === currentId)) {
+      const current = categories.find((c) => c.id === currentId);
+      if (current) opts.push(current);
+    }
+    return opts;
+  };
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setError(''); setOpen(true); };
   const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY, ...p }); setError(''); setOpen(true); };
@@ -153,7 +166,7 @@ export default function SellerListings({ storeOverride }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <TextField select label="Category" value={form.categoryId}
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-              {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+              {categoryOptions(form.categoryId).map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
             </TextField>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField label="Price (₹)" type="number" value={form.price}

@@ -16,6 +16,7 @@ import SellerOrders from '../Seller/SellerOrders';
 import SellerListings from '../Seller/SellerListings';
 import SellerReviews from '../Seller/SellerReviews';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
+import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 
 export default function FdmManageStore() {
   const { storeId } = useParams();
@@ -85,14 +86,16 @@ export default function FdmManageStore() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
         <Tab label="Orders" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Products" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Categories" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Reviews" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Packaging" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {tab === 0 && <SellerOrders storeOverride={store} />}
       {tab === 1 && <SellerListings storeOverride={store} />}
-      {tab === 2 && <SellerReviews storeOverride={store} showOrderFeedback />}
-      {tab === 3 && (
+      {tab === 2 && <StoreCategoriesEditor store={store} />}
+      {tab === 3 && <SellerReviews storeOverride={store} showOrderFeedback />}
+      {tab === 4 && (
         <PackagingChartEditor
           store={store}
           onSaved={async () => setStoreState(await getStore(storeId))}

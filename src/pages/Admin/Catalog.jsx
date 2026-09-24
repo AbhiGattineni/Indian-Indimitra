@@ -9,14 +9,16 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
+import CategoryIcon from '@mui/icons-material/Category';
 import {
   listStores, updateStore, createStore, getUserByEmail, setUserRole, listUsersByRole,
-  listAllProducts, listCategories, createProduct, updateProduct, deleteProduct,
+  listAllProducts, listAllCategories, createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
 import { formatINR } from '../../lib/calculations';
 import { PRODUCT_STATUS, STORE_STATUS, ROLES } from '../../lib/constants';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
+import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 
 export default function Catalog() {
   const [tab, setTab] = useState('stores');
@@ -27,7 +29,7 @@ export default function Catalog() {
 
   const load = async () => {
     setLoading(true);
-    const [s, p, c] = await Promise.all([listStores(), listAllProducts(), listCategories()]);
+    const [s, p, c] = await Promise.all([listStores(), listAllProducts(), listAllCategories()]);
     setStores(s);
     setProducts(p);
     setCategories(c);
@@ -108,6 +110,7 @@ function StoresTab({ stores, onSaved }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [packagingStore, setPackagingStore] = useState(null);
+  const [categoriesStore, setCategoriesStore] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_NEW_STORE);
   const [addSaving, setAddSaving] = useState(false);
@@ -224,6 +227,9 @@ function StoresTab({ stores, onSaved }) {
                 <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => setCategoriesStore(s)} title="Categories">
+                    <CategoryIcon />
+                  </IconButton>
                   <IconButton onClick={() => setPackagingStore(s)} title="Packaging chart">
                     <Inventory2Icon />
                   </IconButton>
@@ -332,6 +338,18 @@ function StoresTab({ stores, onSaved }) {
           <Button onClick={() => setPackagingStore(null)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={!!categoriesStore} onClose={() => setCategoriesStore(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Categories{categoriesStore ? ` — ${categoriesStore.name}` : ''}</DialogTitle>
+        <DialogContent>
+          {categoriesStore && (
+            <StoreCategoriesEditor store={categoriesStore} onChanged={onSaved} />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCategoriesStore(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
@@ -363,6 +381,19 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY_PRODUCT, ...p }); setError(''); setOpen(true); };
 
   const openAdd = () => { setAddForm(EMPTY_NEW_PRODUCT); setAddError(''); setAddOpen(true); };
+
+  // Only that store's own enabled categories are offered -- plus, for the
+  // edit dialog, whatever category the product is already set to (even if
+  // since disabled, or a pre-per-store-categories legacy one), so the field
+  // doesn't just go blank for existing data.
+  const categoryOptions = (storeId, currentId) => {
+    const opts = categories.filter((c) => c.storeId === storeId && c.enabled !== false);
+    if (currentId && !opts.some((c) => c.id === currentId)) {
+      const current = categories.find((c) => c.id === currentId);
+      if (current) opts.push(current);
+    }
+    return opts;
+  };
 
   const createProductDirect = async () => {
     if (!addForm.storeId || !addForm.name || !addForm.categoryId) {
@@ -501,7 +532,9 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <TextField select label="Category" value={form.categoryId}
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-              {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+              {categoryOptions(editing?.storeId, form.categoryId).map((c) => (
+                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+              ))}
             </TextField>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField label="Price (₹)" type="number" value={form.price}
@@ -544,16 +577,20 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField select label="Store" value={addForm.storeId}
-              onChange={(e) => setAddForm({ ...addForm, storeId: e.target.value })}>
+              onChange={(e) => setAddForm({ ...addForm, storeId: e.target.value, categoryId: '' })}>
               {stores.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
             </TextField>
             <TextField label="Name" value={addForm.name}
               onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
             <TextField label="Description" multiline rows={2} value={addForm.description}
               onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} />
-            <TextField select label="Category" value={addForm.categoryId}
-              onChange={(e) => setAddForm({ ...addForm, categoryId: e.target.value })}>
-              {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+            <TextField
+              select label="Category" value={addForm.categoryId} disabled={!addForm.storeId}
+              helperText={addForm.storeId && categoryOptions(addForm.storeId, '').length === 0
+                ? 'This store has no categories yet — add one from its Categories button first.' : ''}
+              onChange={(e) => setAddForm({ ...addForm, categoryId: e.target.value })}
+            >
+              {categoryOptions(addForm.storeId, '').map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
             </TextField>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField label="Price (₹)" type="number" value={addForm.price}
