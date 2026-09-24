@@ -89,27 +89,6 @@ export async function updateCategory(id, data) {
   return updateDoc(doc(db, 'categories', id), data);
 }
 
-/* ---------------- Per-store categories (each store owns its own list; --- */
-/* legacy categories above have no storeId and stay admin-only/global) --- */
-export async function listCategoriesByStore(storeId) {
-  const snap = await getDocs(query(collection(db, 'categories'), where('storeId', '==', storeId)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-// Unfiltered, for admin's cross-store product picker (Catalog.jsx), which
-// needs every store's categories at once rather than one store at a time.
-export async function listAllCategories() {
-  const snap = await getDocs(collection(db, 'categories'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-export async function createStoreCategory(storeId, name) {
-  return addDoc(collection(db, 'categories'), {
-    storeId, name, enabled: true, createdAt: serverTimestamp(),
-  });
-}
-export async function updateCategory(id, data) {
-  return updateDoc(doc(db, 'categories', id), data);
-}
-
 /* ---------------- Stores (seller storefronts) ---------------- */
 export async function createStore(ownerUid, data) {
   return addDoc(collection(db, 'stores'), {
