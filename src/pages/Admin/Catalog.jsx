@@ -15,8 +15,10 @@ import {
   listAllProducts, listAllCategories, createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
-import { formatINR } from '../../lib/calculations';
-import { PRODUCT_STATUS, STORE_STATUS, ROLES } from '../../lib/constants';
+import { formatINR, effectiveMargin } from '../../lib/calculations';
+import {
+  PRODUCT_STATUS, STORE_STATUS, ROLES, UNIT_TYPES, unitTypeShortLabel,
+} from '../../lib/constants';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 
@@ -357,12 +359,14 @@ function StoresTab({ stores, onSaved }) {
 /* ---------------- Products ---------------- */
 
 const EMPTY_PRODUCT = {
-  name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit', imageUrl: '',
+  name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
+  weightPerUnitKg: '', quantity: 0, unit: 'unit', imageUrl: '',
   status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
 const EMPTY_NEW_PRODUCT = {
-  storeId: '', name: '', description: '', categoryId: '', price: 0, quantity: 0, unit: 'unit',
+  storeId: '', name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
+  weightPerUnitKg: '', quantity: 0, unit: 'unit',
   status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
@@ -379,7 +383,12 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   const [addError, setAddError] = useState('');
   const [addSaving, setAddSaving] = useState(false);
 
-  const openEdit = (p) => { setEditing(p); setForm({ ...EMPTY_PRODUCT, ...p }); setError(''); setOpen(true); };
+  const openEdit = (p) => {
+    setEditing(p);
+    setForm({ ...EMPTY_PRODUCT, ...p, margin: effectiveMargin(p) });
+    setError('');
+    setOpen(true);
+  };
 
   const openAdd = () => { setAddForm(EMPTY_NEW_PRODUCT); setAddError(''); setAddOpen(true); };
 
@@ -401,6 +410,10 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
       setAddError('Store, name and category are required.');
       return;
     }
+    if (addForm.unitType !== 'weight' && !(Number(addForm.weightPerUnitKg) > 0)) {
+      setAddError(`Shipping weight per ${unitTypeShortLabel(addForm.unitType)} is required for a ${addForm.unitType} product.`);
+      return;
+    }
     setAddSaving(true);
     setAddError('');
     try {
@@ -411,7 +424,10 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
         name: addForm.name,
         description: addForm.description,
         categoryId: addForm.categoryId,
+        unitType: addForm.unitType,
         price: Number(addForm.price) || 0,
+        margin: Number(addForm.margin) || 0,
+        weightPerUnitKg: addForm.unitType === 'weight' ? 0 : Number(addForm.weightPerUnitKg) || 0,
         quantity: Number(addForm.quantity) || 0,
         unit: addForm.unit,
         imageUrl: '',
@@ -443,10 +459,16 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
 
   const save = async () => {
     if (!form.name || !form.categoryId) { setError('Name and category are required.'); return; }
+    if (form.unitType !== 'weight' && !(Number(form.weightPerUnitKg) > 0)) {
+      setError(`Shipping weight per ${unitTypeShortLabel(form.unitType)} is required for a ${form.unitType} product.`);
+      return;
+    }
     try {
       await updateProduct(editing.id, {
         name: form.name, description: form.description, categoryId: form.categoryId,
-        price: Number(form.price) || 0, quantity: Number(form.quantity) || 0,
+        unitType: form.unitType, price: Number(form.price) || 0, margin: Number(form.margin) || 0,
+        weightPerUnitKg: form.unitType === 'weight' ? 0 : Number(form.weightPerUnitKg) || 0,
+        quantity: Number(form.quantity) || 0,
         unit: form.unit, imageUrl: form.imageUrl, status: form.status, warning: form.warning,
       });
       setOpen(false);
@@ -515,7 +537,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
                 </TableCell>
                 <TableCell>{p.name}</TableCell>
                 <TableCell>{storeNameById[p.storeId] || p.storeId}</TableCell>
-                <TableCell align="right">{formatINR(p.price)}</TableCell>
+                <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
                 <TableCell align="right">{p.quantity} {p.unit}</TableCell>
                 <TableCell>
                   <Chip
@@ -548,13 +570,36 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
                 <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
               ))}
             </TextField>
+            <TextField select label="Sold by" value={form.unitType}
+              onChange={(e) => setForm({ ...form, unitType: e.target.value })}>
+              {UNIT_TYPES.map((u) => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+            </TextField>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Price (₹)" type="number" value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })} fullWidth />
+              <TextField
+                label={`Seller price (₹/${unitTypeShortLabel(form.unitType)})`} type="number"
+                value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} fullWidth
+              />
+              <TextField
+                label={`Platform margin (₹/${unitTypeShortLabel(form.unitType)})`} type="number"
+                value={form.margin} onChange={(e) => setForm({ ...form, margin: e.target.value })} fullWidth
+                helperText="Added to seller price; customers see the combined price only."
+              />
+            </Box>
+            {form.unitType !== 'weight' && (
+              <TextField
+                label={`Shipping weight per ${unitTypeShortLabel(form.unitType)} (kg)`} type="number"
+                value={form.weightPerUnitKg}
+                onChange={(e) => setForm({ ...form, weightPerUnitKg: e.target.value })}
+                helperText="Actual physical weight of one unit, used to calculate international shipping cost."
+                fullWidth
+              />
+            )}
+            <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField label="Quantity" type="number" value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })} fullWidth />
-              <TextField label="Unit" value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })} sx={{ width: 120 }} />
+              <TextField label="Unit label" value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })} sx={{ width: 160 }}
+                helperText="Shown in stock counts, e.g. 'kg', 'piece', 'box'." />
             </Box>
             <TextField select label="Status" value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}>
@@ -604,13 +649,36 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
             >
               {categoryOptions(addForm.storeId, '').map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
             </TextField>
+            <TextField select label="Sold by" value={addForm.unitType}
+              onChange={(e) => setAddForm({ ...addForm, unitType: e.target.value })}>
+              {UNIT_TYPES.map((u) => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+            </TextField>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Price (₹)" type="number" value={addForm.price}
-                onChange={(e) => setAddForm({ ...addForm, price: e.target.value })} fullWidth />
+              <TextField
+                label={`Seller price (₹/${unitTypeShortLabel(addForm.unitType)})`} type="number"
+                value={addForm.price} onChange={(e) => setAddForm({ ...addForm, price: e.target.value })} fullWidth
+              />
+              <TextField
+                label={`Platform margin (₹/${unitTypeShortLabel(addForm.unitType)})`} type="number"
+                value={addForm.margin} onChange={(e) => setAddForm({ ...addForm, margin: e.target.value })} fullWidth
+                helperText="Added to seller price; customers see the combined price only."
+              />
+            </Box>
+            {addForm.unitType !== 'weight' && (
+              <TextField
+                label={`Shipping weight per ${unitTypeShortLabel(addForm.unitType)} (kg)`} type="number"
+                value={addForm.weightPerUnitKg}
+                onChange={(e) => setAddForm({ ...addForm, weightPerUnitKg: e.target.value })}
+                helperText="Actual physical weight of one unit, used to calculate international shipping cost."
+                fullWidth
+              />
+            )}
+            <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField label="Quantity" type="number" value={addForm.quantity}
                 onChange={(e) => setAddForm({ ...addForm, quantity: e.target.value })} fullWidth />
-              <TextField label="Unit" value={addForm.unit}
-                onChange={(e) => setAddForm({ ...addForm, unit: e.target.value })} sx={{ width: 120 }} />
+              <TextField label="Unit label" value={addForm.unit}
+                onChange={(e) => setAddForm({ ...addForm, unit: e.target.value })} sx={{ width: 160 }}
+                helperText="e.g. 'kg', 'piece', 'box'." />
             </Box>
             <TextField select label="Status" value={addForm.status}
               onChange={(e) => setAddForm({ ...addForm, status: e.target.value })}>

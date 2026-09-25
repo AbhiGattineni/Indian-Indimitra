@@ -19,18 +19,24 @@ import {
 } from '../firebase/db';
 import {
   lineTotal, cartSubtotal, cartWeightKg, sellerSubtotal, shippingFee, taxAmount, commissionAmount,
-  customerPricePerKg, formatINR, formatWeight,
+  customerPrice, formatINR,
 } from '../lib/calculations';
 import { isDomestic, internationalShipping, packedWeightKg } from '../lib/shipping';
 import { useAuthStore } from '../store/useAuthStore';
-import { ROLES } from '../lib/constants';
+import { ROLES, unitTypeShortLabel } from '../lib/constants';
 import InfoTip from './InfoTip';
 
 const WEIGHT_OPTIONS = [
-  { g: 250, label: '250 g' },
-  { g: 500, label: '500 g' },
-  { g: 1000, label: '1 kg' },
+  { amount: 250, label: '250 g' },
+  { amount: 500, label: '500 g' },
+  { amount: 1000, label: '1 kg' },
 ];
+const VOLUME_OPTIONS = [
+  { amount: 250, label: '250 ml' },
+  { amount: 500, label: '500 ml' },
+  { amount: 1000, label: '1 L' },
+];
+const tierOptionsFor = (unitType) => (unitType === 'volume' ? VOLUME_OPTIONS : WEIGHT_OPTIONS);
 
 export default function EditOrderDialog({ order, onClose, onSaved }) {
   const { user, profile } = useAuthStore();
@@ -69,26 +75,34 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
       it.lineId === lineId ? { ...it, qty: Math.max(1, it.qty + delta) } : it
     )));
   };
-  const updateGrams = (lineId, grams) => {
-    if (!grams) return;
-    setItems((prev) => prev.map((it) => (it.lineId === lineId ? { ...it, grams } : it)));
+  // `amount` is grams for a weight line, millilitres for volume -- ignored
+  // (and never called) for a piece line, which has no tier to change.
+  const updateAmount = (lineId, unitType, amount) => {
+    if (!amount) return;
+    const field = unitType === 'volume' ? 'milliliters' : 'grams';
+    setItems((prev) => prev.map((it) => (it.lineId === lineId ? { ...it, [field]: amount } : it)));
   };
   const removeLine = (lineId) => setItems((prev) => prev.filter((it) => it.lineId !== lineId));
 
   const addProduct = () => {
     const p = products.find((x) => x.id === addProductId);
     if (!p) return;
-    const grams = 1000;
-    const lineId = `${p.id}_${grams}`;
+    const unitType = p.unitType || 'weight';
+    const amount = 1000;
+    const lineId = unitType === 'piece' ? `${p.id}_piece` : `${p.id}_${amount}`;
     setItems((prev) => {
       const existing = prev.find((it) => it.lineId === lineId);
       if (existing) {
         return prev.map((it) => (it.lineId === lineId ? { ...it, qty: it.qty + 1 } : it));
       }
-      return [...prev, {
-        lineId, productId: p.id, name: p.name, price: customerPricePerKg(p.price), sellerPrice: p.price,
-        grams, qty: 1, imageUrl: p.imageUrl || '', instructions: '',
-      }];
+      const line = {
+        lineId, productId: p.id, name: p.name, price: customerPrice(p), sellerPrice: p.price,
+        unitType, qty: 1, imageUrl: p.imageUrl || '', instructions: '',
+      };
+      if (unitType === 'volume') line.milliliters = amount;
+      else if (unitType !== 'piece') line.grams = amount;
+      if (unitType !== 'weight') line.weightPerUnitKg = Number(p.weightPerUnitKg || 0);
+      return [...prev, line];
     });
     setAddProductId('');
   };
@@ -180,18 +194,20 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
                   </IconButton>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mt: 0.5 }}>
-                  <ToggleButtonGroup
-                    exclusive
-                    size="small"
-                    value={it.grams}
-                    onChange={(_, g) => updateGrams(it.lineId, g)}
-                  >
-                    {WEIGHT_OPTIONS.map((w) => (
-                      <ToggleButton key={w.g} value={w.g} sx={{ px: 1.25, textTransform: 'none' }}>
-                        {w.label}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
+                  {it.unitType !== 'piece' && (
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      value={it.unitType === 'volume' ? it.milliliters : it.grams}
+                      onChange={(_, a) => updateAmount(it.lineId, it.unitType, a)}
+                    >
+                      {tierOptionsFor(it.unitType).map((w) => (
+                        <ToggleButton key={w.amount} value={w.amount} sx={{ px: 1.25, textTransform: 'none' }}>
+                          {w.label}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  )}
                   <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                     <IconButton size="small" disabled={it.qty <= 1} onClick={() => updateQty(it.lineId, -1)}>
                       <RemoveIcon fontSize="small" />
@@ -218,7 +234,9 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
                 onChange={(e) => setAddProductId(e.target.value)} sx={{ flex: 1 }}
               >
                 {addableProducts.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>{p.name} — {formatINR(customerPricePerKg(p.price))}/kg</MenuItem>
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.name} — {formatINR(customerPrice(p))}/{unitTypeShortLabel(p.unitType)}
+                  </MenuItem>
                 ))}
               </TextField>
               <Button variant="outlined" disabled={!addProductId} onClick={addProduct}>Add</Button>

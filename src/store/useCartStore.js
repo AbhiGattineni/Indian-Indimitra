@@ -1,24 +1,32 @@
 // Cart state. A cart is scoped to a single store at a time (marketplace orders
-// are per-seller). Switching stores replaces the cart. The same product at a
-// different weight (250 g / 500 g / 1 kg) is a separate line, keyed by lineId.
+// are per-seller). For a weight/volume product, the same product at a
+// different tier (e.g. 250 g vs 1 kg) is a separate line; a piece product
+// only ever has one line (no tier), keyed by lineId.
 import { create } from 'zustand';
-import { customerPricePerKg } from '../lib/calculations';
+import { customerPrice } from '../lib/calculations';
 
-const lineIdFor = (productId, grams) => `${productId}_${grams}`;
+const lineIdFor = (productId, unitType, amount) =>
+  unitType === 'piece' ? `${productId}_piece` : `${productId}_${amount}`;
 
 export const useCartStore = create((set, get) => ({
   storeId: null,
   storeName: '',
-  // price = customer-facing per-kg price (seller's price + platform margin);
-  // sellerPrice = the seller's own per-kg price, kept alongside for the
-  // commission/seller-net split at checkout.
-  items: [], // { lineId, productId, name, price, sellerPrice, grams, qty, imageUrl, instructions }
+  // price = customer-facing price per selling unit (seller's price + platform
+  // margin, both set on the product); sellerPrice = the seller's own price,
+  // kept alongside for the commission/seller-net split at checkout.
+  // items: { lineId, productId, name, price, sellerPrice, unitType, qty,
+  //   grams (weight) | milliliters (volume), weightPerUnitKg (piece/volume,
+  //   for shipping), imageUrl, instructions }
+  items: [],
 
-  addItem: (storeId, storeName, product, grams = 1000, qty = 1, instructions = '') => {
+  // `amount` is grams for a weight product, millilitres for volume, and
+  // ignored for piece (qty alone is the amount).
+  addItem: (storeId, storeName, product, amount = 1000, qty = 1, instructions = '') => {
     const state = get();
+    const unitType = product.unitType || 'weight';
     // New store => reset cart to keep one seller per order.
     let items = state.storeId === storeId ? [...state.items] : [];
-    const lineId = lineIdFor(product.id, grams);
+    const lineId = lineIdFor(product.id, unitType, amount);
     const idx = items.findIndex((i) => i.lineId === lineId);
     if (idx >= 0) {
       items[idx] = {
@@ -28,17 +36,21 @@ export const useCartStore = create((set, get) => ({
         instructions: instructions || items[idx].instructions,
       };
     } else {
-      items.push({
+      const line = {
         lineId,
         productId: product.id,
         name: product.name,
-        price: customerPricePerKg(product.price),
+        price: customerPrice(product),
         sellerPrice: product.price,
-        grams,
+        unitType,
         qty,
         imageUrl: product.imageUrl || '',
         instructions,
-      });
+      };
+      if (unitType === 'volume') line.milliliters = amount;
+      else if (unitType !== 'piece') line.grams = amount;
+      if (unitType !== 'weight') line.weightPerUnitKg = Number(product.weightPerUnitKg || 0);
+      items.push(line);
     }
     set({ storeId, storeName, items });
   },

@@ -32,6 +32,18 @@ export const PRODUCT_STATUS = {
   UNLISTED: 'unlisted',
 };
 
+// How a product is sold. Drives the customer-facing quantity selector
+// (weight/volume get the 250/500/1000 tier buttons, piece gets a plain
+// count) and what "per selling unit" means for its price/margin.
+export const UNIT_TYPES = [
+  { value: 'weight', label: 'Weight (kg)', shortLabel: 'kg' },
+  { value: 'piece', label: 'Piece (count)', shortLabel: 'piece' },
+  { value: 'volume', label: 'Volume (liter)', shortLabel: 'L' },
+];
+export function unitTypeShortLabel(unitType) {
+  return UNIT_TYPES.find((u) => u.value === unitType)?.shortLabel || 'kg';
+}
+
 // Order lifecycle: placed -> accepted -> shipped -> in_transit -> delivered
 // (or cancelled, branching off placed/accepted). "Shipped" = packed/handed to
 // the courier; moving to "in_transit" is what captures the tracking number.

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { listCategoriesByStore, listProductsByStore, listReviewsByStore } from '../../firebase/db';
-import { formatINR, customerPricePerKg } from '../../lib/calculations';
+import { formatINR, customerPrice } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
 import { PRODUCT_STATUS } from '../../lib/constants';
 import { ratingsByProduct } from '../../lib/reviews';
@@ -138,7 +138,7 @@ export default function Browse() {
                       {p.name}
                     </Typography>
                     <Typography color="primary" fontWeight={700}>
-                      {formatINR(customerPricePerKg(p.price))}
+                      {formatINR(customerPrice(p))}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {p.unit}

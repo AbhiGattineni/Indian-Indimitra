@@ -8,7 +8,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { db } from '../../firebase/config';
 import { getStore } from '../../firebase/db';
 import { useCartStore } from '../../store/useCartStore';
-import { formatINR, customerPricePerKg } from '../../lib/calculations';
+import { formatINR, customerPrice } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
 import AddToCartDialog from '../../components/AddToCartDialog';
 
@@ -65,7 +65,7 @@ export default function ProductPage() {
           </Typography>
           {store && <Chip label={`Sold by ${store.name}`} size="small" sx={{ mb: 2 }} />}
           <Typography variant="h5" color="primary" gutterBottom>
-            {formatINR(customerPricePerKg(product.price))}{' '}
+            {formatINR(customerPrice(product))}{' '}
             <Typography component="span" color="text.secondary">
               / {product.unit}
             </Typography>

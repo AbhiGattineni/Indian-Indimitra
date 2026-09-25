@@ -15,6 +15,7 @@ export function diffOrderItems(originalItems = [], currentItems = []) {
     if (!b && a) return { lineId, kind: 'added', before: null, after: a };
     const changed = b.qty !== a.qty
       || b.grams !== a.grams
+      || b.milliliters !== a.milliliters
       || (b.instructions || '') !== (a.instructions || '');
     return { lineId, kind: changed ? 'changed' : 'unchanged', before: b, after: a };
   });
