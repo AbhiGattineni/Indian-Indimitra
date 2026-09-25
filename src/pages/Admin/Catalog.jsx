@@ -373,6 +373,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [storeFilter, setStoreFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_NEW_PRODUCT);
   const [addError, setAddError] = useState('');
@@ -462,6 +463,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   };
 
   const filtered = products.filter((p) => {
+    if (storeFilter !== 'all' && p.storeId !== storeFilter) return false;
     const q = search.toLowerCase();
     return p.name?.toLowerCase().includes(q) || (storeNameById[p.storeId] || '').toLowerCase().includes(q);
   });
@@ -469,14 +471,24 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search products or stores"
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 260 }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-        />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <TextField
+            placeholder="Search products or stores"
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ minWidth: 260 }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+          />
+          <TextField
+            select size="small" label="Store" value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="all">All stores</MenuItem>
+            {stores.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+          </TextField>
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>Add product</Button>
       </Box>
 
