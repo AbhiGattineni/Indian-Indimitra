@@ -5,7 +5,9 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
-import { formatINR, cartSubtotal, lineTotal, formatWeight } from '../../lib/calculations';
+import {
+  formatINR, cartSubtotal, lineTotal, formatSaleAmount, itemUnitAmount,
+} from '../../lib/calculations';
 
 export default function Cart() {
   const { items, storeName, setQty, removeItem } = useCartStore();
@@ -35,7 +37,7 @@ export default function Cart() {
             <TableHead>
               <TableRow>
                 <TableCell>Product</TableCell>
-                <TableCell>Weight</TableCell>
+                <TableCell>Amount</TableCell>
                 <TableCell align="right">Price</TableCell>
                 <TableCell align="center">Qty</TableCell>
                 <TableCell align="right">Total</TableCell>
@@ -53,9 +55,9 @@ export default function Cart() {
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell>{formatWeight(it.grams)}</TableCell>
+                  <TableCell>{formatSaleAmount(it)}</TableCell>
                   <TableCell align="right">
-                    {formatINR(it.price * ((Number(it.grams) || 1000) / 1000))}
+                    {formatINR(it.price * itemUnitAmount(it))}
                   </TableCell>
                   <TableCell align="center">
                     <TextField

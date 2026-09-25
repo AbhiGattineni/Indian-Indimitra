@@ -4,7 +4,7 @@
 // as a standalone HTML document (own styles, no app CSS/dependencies) rather
 // than printing the live page, so the layout stays predictable regardless of
 // what else is on screen.
-import { formatINR, formatWeight, cartWeightKg } from './calculations';
+import { formatINR, formatSaleAmount, cartWeightKg } from './calculations';
 import { paymentLabel } from './constants';
 import { formatIST as formatTimestamp } from './datetime';
 
@@ -20,7 +20,7 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
   const rows = items.map((it) => `
     <tr>
       <td>${esc(it.name)}${it.instructions ? `<div class="note">Note: ${esc(it.instructions)}</div>` : ''}</td>
-      <td>${esc(formatWeight(it.grams))}</td>
+      <td>${esc(formatSaleAmount(it))}</td>
       <td class="num">${esc(it.qty)}</td>
       <td class="num">${esc(formatINR(it.price))}</td>
       <td class="num">${esc(formatINR(it.lineTotal))}</td>
@@ -101,7 +101,7 @@ function buildInvoiceHtml(order, customer, { includeSellerFinancials = true } = 
 
   <table>
     <thead>
-      <tr><th>Item</th><th>Weight</th><th class="num">Qty</th><th class="num">Price/kg</th><th class="num">Line total</th></tr>
+      <tr><th>Item</th><th>Amount</th><th class="num">Qty</th><th class="num">Price/unit</th><th class="num">Line total</th></tr>
     </thead>
     <tbody>
       ${rows}

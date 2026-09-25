@@ -15,15 +15,22 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import { useCartStore } from '../store/useCartStore';
-import { formatINR, formatWeight, lineTotal as computeLineTotal, customerPricePerKg } from '../lib/calculations';
+import {
+  formatINR, formatSaleAmount, lineTotal as computeLineTotal, customerPrice,
+} from '../lib/calculations';
 import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
 import ProductReviews from './ProductReviews';
 
 const WEIGHT_OPTIONS = [
-  { g: 250, label: '250 g' },
-  { g: 500, label: '500 g' },
-  { g: 1000, label: '1 kg' },
+  { amount: 250, label: '250 g' },
+  { amount: 500, label: '500 g' },
+  { amount: 1000, label: '1 kg' },
+];
+const VOLUME_OPTIONS = [
+  { amount: 250, label: '250 ml' },
+  { amount: 500, label: '500 ml' },
+  { amount: 1000, label: '1 L' },
 ];
 
 export default function ProductModal({ open, product, storeId, storeName, onClose }) {
@@ -31,29 +38,33 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const removeItem = useCartStore((s) => s.removeItem);
   const cartItems = useCartStore((s) => s.items);
   const [qty, setQty] = useState(1);
-  const [grams, setGrams] = useState(1000);
+  const [amount, setAmount] = useState(1000);
   const [instructions, setInstructions] = useState('');
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
-    if (open) { setQty(1); setGrams(1000); setInstructions(''); }
+    if (open) { setQty(1); setAmount(1000); setInstructions(''); }
   }, [open, product?.id]);
 
   if (!product) return null;
 
+  const unitType = product.unitType || 'weight';
+  const isPiece = unitType === 'piece';
+  const tierOptions = unitType === 'volume' ? VOLUME_OPTIONS : WEIGHT_OPTIONS;
   const outOfStock = !product.quantity;
-  const displayPricePerKg = customerPricePerKg(product.price);
-  const unitPrice = displayPricePerKg * (grams / 1000); // price for the selected weight
+  const displayPrice = customerPrice(product);
+  const unitPrice = isPiece ? displayPrice : displayPrice * (amount / 1000); // price for the selected tier
   const lineTotal = unitPrice * qty;
 
-  // Existing cart lines for this product (one per weight selected so far) —
-  // shown so re-opening the modal doesn't hide what's already been added.
+  // Existing cart lines for this product (one per tier selected so far, or
+  // the single line for a piece product) — shown so re-opening the modal
+  // doesn't hide what's already been added.
   const existingLines = cartItems
     .filter((i) => i.productId === product.id)
-    .sort((a, b) => a.grams - b.grams);
+    .sort((a, b) => (a.grams || a.milliliters || 0) - (b.grams || b.milliliters || 0));
 
   const handleAdd = () => {
-    addItem(storeId, storeName, product, grams, qty, instructions.trim());
+    addItem(storeId, storeName, product, isPiece ? 1 : amount, qty, instructions.trim());
     setToast(true);
     onClose();
   };
@@ -101,7 +112,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             </Typography>
             <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
               <Typography variant="h6" color="primary.main" fontWeight={700} sx={{ lineHeight: 1.25 }}>
-                {formatINR(displayPricePerKg)}
+                {formatINR(displayPrice)}
               </Typography>
               <Typography variant="caption" color="text.secondary">/ {product.unit}</Typography>
             </Box>
@@ -138,7 +149,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
               {existingLines.map((line) => (
                 <Box key={line.lineId} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="body2">
-                    {formatWeight(line.grams)} × {line.qty}
+                    {formatSaleAmount(line)} × {line.qty}
                     {line.instructions && (
                       <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
                         ({line.instructions})
@@ -159,34 +170,37 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
           <Divider />
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Box sx={{ flex: '1 1 auto' }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
-                Weight
-              </Typography>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                value={grams}
-                onChange={(_, v) => v && setGrams(v)}
-                disabled={outOfStock}
-              >
-                {WEIGHT_OPTIONS.map((w) => {
-                  const pieces = piecesForGrams(product.name, w.g);
-                  const inCartQty = existingLines.find((l) => l.grams === w.g)?.qty || 0;
-                  return (
-                    <ToggleButton key={w.g} value={w.g} sx={{ px: 1.25, fontWeight: 600, textTransform: 'none' }}>
-                      <Badge
-                        badgeContent={inCartQty}
-                        color="primary"
-                        sx={{ '& .MuiBadge-badge': { top: -8, right: -8 } }}
-                      >
-                        {w.label}{pieces ? ` (~${pieces})` : ''}
-                      </Badge>
-                    </ToggleButton>
-                  );
-                })}
-              </ToggleButtonGroup>
-            </Box>
+            {!isPiece && (
+              <Box sx={{ flex: '1 1 auto' }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                  {unitType === 'volume' ? 'Volume' : 'Weight'}
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={amount}
+                  onChange={(_, v) => v && setAmount(v)}
+                  disabled={outOfStock}
+                >
+                  {tierOptions.map((w) => {
+                    const pieces = unitType === 'weight' ? piecesForGrams(product.name, w.amount) : null;
+                    const tierKey = unitType === 'volume' ? 'milliliters' : 'grams';
+                    const inCartQty = existingLines.find((l) => l[tierKey] === w.amount)?.qty || 0;
+                    return (
+                      <ToggleButton key={w.amount} value={w.amount} sx={{ px: 1.25, fontWeight: 600, textTransform: 'none' }}>
+                        <Badge
+                          badgeContent={inCartQty}
+                          color="primary"
+                          sx={{ '& .MuiBadge-badge': { top: -8, right: -8 } }}
+                        >
+                          {w.label}{pieces ? ` (~${pieces})` : ''}
+                        </Badge>
+                      </ToggleButton>
+                    );
+                  })}
+                </ToggleButtonGroup>
+              </Box>
+            )}
 
             <Box>
               <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
@@ -233,7 +247,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
                 Total
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                {WEIGHT_OPTIONS.find((w) => w.g === grams)?.label} × {qty} @ {formatINR(unitPrice)}
+                {isPiece ? 'Each' : tierOptions.find((w) => w.amount === amount)?.label} × {qty} @ {formatINR(unitPrice)}
               </Typography>
             </Box>
             <Typography variant="h6" fontWeight={700}>

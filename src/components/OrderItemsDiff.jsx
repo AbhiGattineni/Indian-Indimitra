@@ -4,7 +4,7 @@
 // FDM, admin) can see exactly what changed at a glance.
 import { Box, Typography, Chip } from '@mui/material';
 import { diffOrderItems } from '../lib/orderDiff';
-import { formatINR, formatWeight, lineTotal } from '../lib/calculations';
+import { formatINR, formatSaleAmount, lineTotal } from '../lib/calculations';
 
 const strike = { textDecoration: 'line-through', color: 'text.secondary' };
 
@@ -25,9 +25,9 @@ export function DiffRows({ rows }) {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
               <Typography variant="body2" sx={row.kind === 'removed' ? strike : undefined}>
                 {it.name} (
-                {row.kind === 'changed' && row.before.grams !== row.after.grams
-                  ? <><Was>{formatWeight(row.before.grams)}</Was> {formatWeight(row.after.grams)}</>
-                  : formatWeight(it.grams)}
+                {row.kind === 'changed' && (row.before.grams !== row.after.grams || row.before.milliliters !== row.after.milliliters)
+                  ? <><Was>{formatSaleAmount(row.before)}</Was> {formatSaleAmount(row.after)}</>
+                  : formatSaleAmount(it)}
                 ) ×{' '}
                 {row.kind === 'changed' && row.before.qty !== row.after.qty
                   ? <><Was>{row.before.qty}</Was> {row.after.qty}</>
