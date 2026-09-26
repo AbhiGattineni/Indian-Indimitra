@@ -100,7 +100,7 @@ export default function FdmDashboard() {
       ) : (
         <Grid container spacing={2}>
           {rows.map(({ store, stats }) => (
-            <Grid item xs={12} sm={6} md={4} key={store.id}>
+            <Grid item xs={12} sm={6} md={4} xl={3} key={store.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
