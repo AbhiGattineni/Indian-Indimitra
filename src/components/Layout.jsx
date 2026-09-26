@@ -45,6 +45,11 @@ export default function Layout({ children }) {
   // hidden on the landing gateway and the (store-unrelated) services page.
   const showStoreSwitcher = location.pathname !== '/' && location.pathname !== '/services';
 
+  // Admin and FDM dashboards are a whole-business overview (wide tables,
+  // charts), so they use the full screen width instead of the capped
+  // storefront container.
+  const isDashboard = /^\/(admin|fdm)(\/|$)/.test(location.pathname);
+
   useEffect(() => { ensureStores(); }, [ensureStores]);
 
   const handleSignOut = async () => {
@@ -251,7 +256,7 @@ export default function Layout({ children }) {
 
       <StoreSwitcherModal open={switcherOpen} onClose={closeSwitcher} mandatory={switcherMandatory} />
 
-      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth={isDashboard ? false : 'lg'} sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
         {children}
       </Container>
     </Box>
