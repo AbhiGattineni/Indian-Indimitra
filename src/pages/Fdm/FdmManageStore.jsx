@@ -17,6 +17,7 @@ import SellerListings from '../Seller/SellerListings';
 import SellerReviews from '../Seller/SellerReviews';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
+import StoreBannersEditor from '../../components/StoreBannersEditor';
 
 export default function FdmManageStore() {
   const { storeId } = useParams();
@@ -89,6 +90,7 @@ export default function FdmManageStore() {
         <Tab label="Categories" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Reviews" sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label="Packaging" sx={{ textTransform: 'none', fontWeight: 600 }} />
+        <Tab label="Banners" sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
 
       {tab === 0 && <SellerOrders storeOverride={store} />}
@@ -97,6 +99,12 @@ export default function FdmManageStore() {
       {tab === 3 && <SellerReviews storeOverride={store} showOrderFeedback />}
       {tab === 4 && (
         <PackagingChartEditor
+          store={store}
+          onSaved={async () => setStoreState(await getStore(storeId))}
+        />
+      )}
+      {tab === 5 && (
+        <StoreBannersEditor
           store={store}
           onSaved={async () => setStoreState(await getStore(storeId))}
         />

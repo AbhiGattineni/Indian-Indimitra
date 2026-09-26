@@ -10,6 +10,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import CategoryIcon from '@mui/icons-material/Category';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import {
   listStores, updateStore, createStore, getUserByEmail, setUserRole, listUsersByRole,
   listAllProducts, listAllCategories, createProduct, updateProduct, deleteProduct,
@@ -21,6 +22,7 @@ import {
 } from '../../lib/constants';
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
+import StoreBannersEditor from '../../components/StoreBannersEditor';
 
 export default function Catalog() {
   const [tab, setTab] = useState('stores');
@@ -97,7 +99,7 @@ function FdmAssignSelect({ idPrefix, fdms, value, onChange }) {
 
 const EMPTY_STORE = {
   name: '', description: '', pickupAddress: '', shippingFlatFee: 0, freeShippingThreshold: 0,
-  approvalStatus: STORE_STATUS.PENDING, imageUrl: '', fdmUids: [],
+  approvalStatus: STORE_STATUS.PENDING, fdmUids: [],
 };
 
 const EMPTY_NEW_STORE = {
@@ -109,8 +111,8 @@ function StoresTab({ stores, onSaved }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_STORE);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [bannersStore, setBannersStore] = useState(null);
   const [packagingStore, setPackagingStore] = useState(null);
   const [categoriesStore, setCategoriesStore] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -123,7 +125,7 @@ function StoresTab({ stores, onSaved }) {
 
   const openEdit = (s) => {
     setEditing(s);
-    setForm({ ...EMPTY_STORE, ...s, imageUrl: s.images?.[0] || s.imageUrl || '', fdmUids: s.fdmUids || [] });
+    setForm({ ...EMPTY_STORE, ...s, fdmUids: s.fdmUids || [] });
     setError('');
     setOpen(true);
   };
@@ -168,20 +170,6 @@ function StoresTab({ stores, onSaved }) {
     }
   };
 
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(`stores/${editing.id}`, file);
-      setForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const save = async () => {
     try {
       await updateStore(editing.id, {
@@ -191,7 +179,6 @@ function StoresTab({ stores, onSaved }) {
         shippingFlatFee: Number(form.shippingFlatFee) || 0,
         freeShippingThreshold: Number(form.freeShippingThreshold) || 0,
         approvalStatus: form.approvalStatus,
-        images: form.imageUrl ? [form.imageUrl] : [],
         fdmUids: form.fdmUids,
       });
       setOpen(false);
@@ -229,6 +216,9 @@ function StoresTab({ stores, onSaved }) {
                 <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => setBannersStore(s)} title="Banners">
+                    <ViewCarouselIcon />
+                  </IconButton>
                   <IconButton onClick={() => setCategoriesStore(s)} title="Categories">
                     <CategoryIcon />
                   </IconButton>
@@ -268,13 +258,6 @@ function StoresTab({ stores, onSaved }) {
               value={form.fdmUids}
               onChange={(fdmUids) => setForm({ ...form, fdmUids })}
             />
-            <Button component="label" variant="outlined" disabled={uploading}>
-              {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
-              <input hidden type="file" accept="image/*" onChange={handleFile} />
-            </Button>
-            {form.imageUrl && (
-              <Box component="img" src={form.imageUrl} sx={{ width: 120, borderRadius: 1 }} />
-            )}
             {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         </DialogContent>
@@ -312,7 +295,7 @@ function StoresTab({ stores, onSaved }) {
               onChange={(fdmUids) => setAddForm({ ...addForm, fdmUids })}
             />
             <Typography variant="caption" color="text.secondary">
-              Created as approved — skips the pending-approval queue. Add an image and packaging chart
+              Created as approved — skips the pending-approval queue. Add banners and a packaging chart
               afterward from the store's row.
             </Typography>
             {addError && <Alert severity="error">{addError}</Alert>}
@@ -338,6 +321,18 @@ function StoresTab({ stores, onSaved }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPackagingStore(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!bannersStore} onClose={() => setBannersStore(null)} fullWidth maxWidth="md">
+        <DialogTitle>Banners{bannersStore ? ` — ${bannersStore.name}` : ''}</DialogTitle>
+        <DialogContent>
+          {bannersStore && (
+            <StoreBannersEditor store={bannersStore} onSaved={onSaved} />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBannersStore(null)}>Close</Button>
         </DialogActions>
       </Dialog>
 
