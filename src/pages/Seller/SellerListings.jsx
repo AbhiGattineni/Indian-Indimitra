@@ -7,6 +7,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ImageNotSupportedOutlinedIcon from '@mui/icons-material/ImageNotSupportedOutlined';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
   getStoreByOwner, listProductsByStore, listCategoriesByStore,
@@ -148,7 +149,31 @@ export default function SellerListings({ storeOverride }) {
           <TableBody>
             {filtered.map((p) => (
               <TableRow key={p.id}>
-                <TableCell>{p.name}</TableCell>
+                <TableCell>
+                  {/* Thumbnail so similar-named products are easy to tell
+                      apart without opening each one. */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box
+                      onClick={() => openEdit(p)}
+                      title={p.imageUrl ? 'Edit product' : 'No image yet — click to add one'}
+                      sx={{
+                        width: 56, height: 56, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer',
+                        bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {p.imageUrl ? (
+                        <Box
+                          component="img" src={p.imageUrl} alt={p.name} loading="lazy"
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <ImageNotSupportedOutlinedIcon sx={{ color: 'text.disabled' }} />
+                      )}
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{p.name}</Typography>
+                  </Box>
+                </TableCell>
                 <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
                 <TableCell align="right">{p.quantity} {p.unit}</TableCell>
                 <TableCell>
