@@ -48,6 +48,10 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const [shippingRates, setShippingRates] = useState(null);
   const [ready, setReady] = useState(false);
   const [addProductId, setAddProductId] = useState('');
+  // Size (grams / millilitres; unused for piece products) and quantity for
+  // the item being added.
+  const [addAmount, setAddAmount] = useState(1000);
+  const [addQty, setAddQty] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,23 +92,30 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
     const p = products.find((x) => x.id === addProductId);
     if (!p) return;
     const unitType = p.unitType || 'weight';
-    const amount = 1000;
-    const lineId = unitType === 'piece' ? `${p.id}_piece` : `${p.id}_${amount}`;
+    const field = unitType === 'volume' ? 'milliliters' : 'grams';
+    const amount = unitType === 'piece' ? null : addAmount;
     setItems((prev) => {
-      const existing = prev.find((it) => it.lineId === lineId);
+      // Same product at the same size already in the order -> just add to its qty.
+      const existing = prev.find((it) => it.productId === p.id
+        && (it.unitType || 'weight') === unitType && (unitType === 'piece' || it[field] === amount));
       if (existing) {
-        return prev.map((it) => (it.lineId === lineId ? { ...it, qty: it.qty + 1 } : it));
+        return prev.map((it) => (it === existing ? { ...it, qty: it.qty + addQty } : it));
       }
+      // A line whose size was changed keeps its original lineId (so the diff
+      // shows it as changed), so that id may already be taken.
+      let lineId = unitType === 'piece' ? `${p.id}_piece` : `${p.id}_${amount}`;
+      if (prev.some((it) => it.lineId === lineId)) lineId = `${lineId}_${Date.now()}`;
       const line = {
         lineId, productId: p.id, name: p.name, price: customerPrice(p), sellerPrice: p.price,
-        unitType, qty: 1, imageUrl: p.imageUrl || '', instructions: '',
+        unitType, qty: addQty, imageUrl: p.imageUrl || '', instructions: '',
       };
-      if (unitType === 'volume') line.milliliters = amount;
-      else if (unitType !== 'piece') line.grams = amount;
+      if (unitType !== 'piece') line[field] = amount;
       if (unitType !== 'weight') line.weightPerUnitKg = Number(p.weightPerUnitKg || 0);
       return [...prev, line];
     });
     setAddProductId('');
+    setAddAmount(1000);
+    setAddQty(1);
   };
 
   const country = order.shippingAddress?.country || 'IN';
@@ -126,6 +137,8 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
   const sellerNet = +(sellerSub - commission).toFixed(2);
 
   const addableProducts = products.filter((p) => p.quantity !== 0);
+  const addingProduct = products.find((x) => x.id === addProductId);
+  const addingUnitType = addingProduct?.unitType || 'weight';
 
   const save = async () => {
     if (items.length === 0) {
@@ -231,7 +244,8 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <TextField
                 select size="small" label="Add an item" value={addProductId}
-                onChange={(e) => setAddProductId(e.target.value)} sx={{ flex: 1 }}
+                onChange={(e) => { setAddProductId(e.target.value); setAddAmount(1000); setAddQty(1); }}
+                sx={{ flex: 1 }}
               >
                 {addableProducts.map((p) => (
                   <MenuItem key={p.id} value={p.id}>
@@ -241,6 +255,38 @@ export default function EditOrderDialog({ order, onClose, onSaved }) {
               </TextField>
               <Button variant="outlined" disabled={!addProductId} onClick={addProduct}>Add</Button>
             </Box>
+            {addingProduct && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
+                {addingUnitType !== 'piece' && (
+                  <ToggleButtonGroup
+                    exclusive size="small" value={addAmount}
+                    onChange={(_, a) => { if (a) setAddAmount(a); }}
+                  >
+                    {tierOptionsFor(addingUnitType).map((w) => (
+                      <ToggleButton key={w.amount} value={w.amount} sx={{ px: 1.25, textTransform: 'none' }}>
+                        {w.label}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                )}
+                <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <IconButton size="small" disabled={addQty <= 1} onClick={() => setAddQty((q) => Math.max(1, q - 1))}>
+                    <RemoveIcon fontSize="small" />
+                  </IconButton>
+                  <Typography sx={{ minWidth: 24, textAlign: 'center' }}>{addQty}</Typography>
+                  <IconButton size="small" onClick={() => setAddQty((q) => q + 1)}>
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Typography variant="body2" sx={{ ml: 'auto' }}>
+                  {formatINR(lineTotal({
+                    price: customerPrice(addingProduct), unitType: addingUnitType, qty: addQty,
+                    ...(addingUnitType === 'volume' ? { milliliters: addAmount } : {}),
+                    ...(addingUnitType === 'weight' ? { grams: addAmount } : {}),
+                  }))}
+                </Typography>
+              </Box>
+            )}
 
             <Divider sx={{ my: 2 }} />
 
