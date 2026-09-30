@@ -191,17 +191,23 @@ export async function listOrderItemsEditLog(orderId) {
   const snap = await getDocs(query(collection(db, 'orders', orderId, 'itemsEditLog'), orderBy('at', 'desc')));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
+// Newest order first, by when it was placed (createdAt). Sorted here rather
+// than with a Firestore orderBy so the where() queries don't need composite
+// indexes. An order whose createdAt is missing sorts last.
+const placedAtMs = (o) => o.createdAt?.toMillis?.() ?? 0;
+const newestFirst = (orders) => orders.sort((a, b) => placedAtMs(b) - placedAtMs(a));
+
 export async function listOrdersByCustomer(uid) {
   const snap = await getDocs(query(collection(db, 'orders'), where('customerUid', '==', uid)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return newestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 export async function listOrdersByStore(storeId) {
   const snap = await getDocs(query(collection(db, 'orders'), where('storeId', '==', storeId)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return newestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 export async function listAllOrders() {
   const snap = await getDocs(collection(db, 'orders'));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return newestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 export async function updateOrder(orderId, data) {
   return updateDoc(doc(db, 'orders', orderId), { ...data, updatedAt: serverTimestamp() });
