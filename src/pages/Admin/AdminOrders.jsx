@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { listAllOrders } from '../../firebase/db';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
+import { formatIST } from '../../lib/datetime';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
 import OrderStatusChip from '../../components/OrderStatusChip';
@@ -49,6 +50,7 @@ export default function AdminOrders() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Ordered on</TableCell>
               <TableCell>Order</TableCell>
               <TableCell>Customer</TableCell>
               <TableCell>Store</TableCell>
@@ -63,6 +65,7 @@ export default function AdminOrders() {
           <TableBody>
             {shown.map((o) => (
               <TableRow key={o.id} hover onClick={() => setSelected(o)} sx={{ cursor: 'pointer' }}>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatIST(o.createdAt)}</TableCell>
                 <TableCell>#{o.id.slice(0, 6)}</TableCell>
                 <TableCell>{o.customerEmail}</TableCell>
                 <TableCell>{o.storeName}</TableCell>

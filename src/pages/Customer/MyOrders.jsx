@@ -10,6 +10,7 @@ import {
 } from '../../firebase/db';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatINR, cartWeightKg } from '../../lib/calculations';
+import { formatIST } from '../../lib/datetime';
 import { ORDER_STATUS, paymentLabel } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
 import { formatAddressLine } from '../../lib/address';
@@ -71,7 +72,8 @@ export default function MyOrders() {
         return (
         <Accordion key={o.id}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%', flexWrap: 'wrap', rowGap: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{formatIST(o.createdAt)}</Typography>
               <Typography sx={{ flexGrow: 1 }}>
                 #{o.id.slice(0, 6)} — {o.storeName}
               </Typography>
