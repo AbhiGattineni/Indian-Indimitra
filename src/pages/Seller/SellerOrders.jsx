@@ -7,6 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getStoreByOwner, listOrdersByStore } from '../../firebase/db';
 import { formatINR } from '../../lib/calculations';
+import { formatIST } from '../../lib/datetime';
 import { ROLES, ORDER_STATUS } from '../../lib/constants';
 import { orderWasEdited } from '../../lib/orderDiff';
 import { formatAddressLine } from '../../lib/address';
@@ -50,7 +51,8 @@ export default function SellerOrders({ storeOverride }) {
       {orders.map((o) => (
         <Accordion key={o.id}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%', flexWrap: 'wrap', rowGap: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{formatIST(o.createdAt)}</Typography>
               <Typography sx={{ flexGrow: 1 }}>#{o.id.slice(0, 6)}</Typography>
               <Typography>{formatINR(o.total)}</Typography>
               {orderWasEdited(o.originalItems, o.items) && (
