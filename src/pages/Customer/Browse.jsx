@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
-  MenuItem, CircularProgress, Rating,
+  MenuItem, CircularProgress, Rating, Checkbox, ListItemText,
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { listCategoriesByStore, listProductsByStore, listReviewsByStore } from '../../firebase/db';
@@ -20,7 +20,8 @@ export default function Browse() {
   const [ratings, setRatings] = useState({});
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  // Selected category ids; empty means all categories.
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const promptedRef = useRef(false);
@@ -43,7 +44,7 @@ export default function Browse() {
   // Categories are each store's own -- reload whenever the store changes,
   // and drop any category filter that no longer applies to it.
   useEffect(() => {
-    setCategory('all');
+    setSelectedCategories([]);
     if (!store) { setCategories([]); return; }
     listCategoriesByStore(store.id)
       .then((c) => setCategories(c.filter((x) => x.enabled !== false)))
@@ -67,7 +68,7 @@ export default function Browse() {
 
   const filtered = products.filter((p) => {
     const matchName = p.name?.toLowerCase().includes(search.toLowerCase());
-    const matchCat = category === 'all' || p.categoryId === category;
+    const matchCat = selectedCategories.length === 0 || selectedCategories.includes(p.categoryId);
     return matchName && matchCat;
   });
 
@@ -97,14 +98,33 @@ export default function Browse() {
           select
           label="Category"
           size="small"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          sx={{ minWidth: 180 }}
+          value={selectedCategories}
+          onChange={(e) => {
+            // "All categories" is sent as the '' entry: it clears the selection.
+            const v = e.target.value;
+            setSelectedCategories(v.includes('') ? [] : v);
+          }}
+          SelectProps={{
+            multiple: true,
+            displayEmpty: true,
+            renderValue: (ids) => {
+              if (ids.length === 0) return 'All categories';
+              if (ids.length === 1) return categories.find((c) => c.id === ids[0])?.name || '1 category';
+              return `${ids.length} categories`;
+            },
+            MenuProps: { PaperProps: { sx: { maxHeight: 360 } } },
+          }}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 200 }}
         >
-          <MenuItem value="all">All categories</MenuItem>
+          <MenuItem value="" divider>
+            <Checkbox size="small" checked={selectedCategories.length === 0} />
+            <ListItemText primary="All categories" />
+          </MenuItem>
           {categories.map((c) => (
             <MenuItem key={c.id} value={c.id}>
-              {c.name}
+              <Checkbox size="small" checked={selectedCategories.includes(c.id)} />
+              <ListItemText primary={c.name} />
             </MenuItem>
           ))}
         </TextField>
