@@ -14,6 +14,7 @@ import {
   createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
 import { uploadImage } from '../../firebase/storage';
+import StaffProductGrid, { ProductViewToggle, useProductViewMode } from '../../components/StaffProductGrid';
 import { formatINR, effectiveMargin } from '../../lib/calculations';
 import { PRODUCT_STATUS, UNIT_TYPES, unitTypeShortLabel } from '../../lib/constants';
 
@@ -36,6 +37,7 @@ export default function SellerListings({ storeOverride }) {
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [view, setView] = useProductViewMode();
   const [search, setSearch] = useState('');
 
   const load = async (s) => {
@@ -126,72 +128,79 @@ export default function SellerListings({ storeOverride }) {
         <Button variant="contained" onClick={openNew}>Add listing</Button>
       </Box>
 
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 2 }}>
       <TextField
         placeholder="Search products"
         size="small"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2, minWidth: 260 }}
+        sx={{ minWidth: 260 }}
         InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
       />
+      <ProductViewToggle value={view} onChange={setView} />
+      </Box>
 
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="right">Stock</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>
-                  {/* Thumbnail so similar-named products are easy to tell
-                      apart without opening each one. */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box
-                      onClick={() => openEdit(p)}
-                      title={p.imageUrl ? 'Edit product' : 'No image yet — click to add one'}
-                      sx={{
-                        width: 56, height: 56, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer',
-                        bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      {p.imageUrl ? (
-                        <Box
-                          component="img" src={p.imageUrl} alt={p.name} loading="lazy"
-                          sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <ImageNotSupportedOutlinedIcon sx={{ color: 'text.disabled' }} />
-                      )}
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{p.name}</Typography>
-                  </Box>
-                </TableCell>
-                <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
-                <TableCell align="right">{p.quantity} {p.unit}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={p.status}
-                    color={p.status === PRODUCT_STATUS.ACTIVE ? 'success' : 'error'}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
-                  <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
-                </TableCell>
+      {view === 'grid' ? (
+        <StaffProductGrid products={filtered} onEdit={openEdit} onDelete={remove} />
+      ) : (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="right">Stock</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filtered.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    {/* Thumbnail so similar-named products are easy to tell
+                        apart without opening each one. */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box
+                        onClick={() => openEdit(p)}
+                        title={p.imageUrl ? 'Edit product' : 'No image yet — click to add one'}
+                        sx={{
+                          width: 56, height: 56, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer',
+                          bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        {p.imageUrl ? (
+                          <Box
+                            component="img" src={p.imageUrl} alt={p.name} loading="lazy"
+                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <ImageNotSupportedOutlinedIcon sx={{ color: 'text.disabled' }} />
+                        )}
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{p.name}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
+                  <TableCell align="right">{p.quantity} {p.unit}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={p.status}
+                      color={p.status === PRODUCT_STATUS.ACTIVE ? 'success' : 'error'}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
+                    <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit listing' : 'Add listing'}</DialogTitle>
@@ -260,7 +269,7 @@ export default function SellerListings({ storeOverride }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={save}>Save</Button>
+          <Button variant="contained" onClick={save} disabled={uploading}>Save</Button>
         </DialogActions>
       </Dialog>
     </Box>
