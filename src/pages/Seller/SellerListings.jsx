@@ -13,14 +13,15 @@ import {
   getStoreByOwner, listProductsByStore, listCategoriesByStore,
   createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
-import { uploadImage } from '../../firebase/storage';
+import ProductImagesField from '../../components/ProductImagesField';
+import { productImages, imageFields } from '../../lib/productImages';
 import StaffProductGrid, { ProductViewToggle, useProductViewMode } from '../../components/StaffProductGrid';
 import { formatINR, effectiveMargin } from '../../lib/calculations';
 import { PRODUCT_STATUS, UNIT_TYPES, unitTypeShortLabel } from '../../lib/constants';
 
 const EMPTY = {
   name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
-  weightPerUnitKg: '', quantity: 0, unit: 'unit', imageUrl: '',
+  weightPerUnitKg: '', quantity: 0, unit: 'unit', images: [],
   status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
@@ -66,23 +67,9 @@ export default function SellerListings({ storeOverride }) {
   const openNew = () => { setEditing(null); setForm(EMPTY); setError(''); setOpen(true); };
   const openEdit = (p) => {
     setEditing(p);
-    setForm({ ...EMPTY, ...p, margin: effectiveMargin(p) });
+    setForm({ ...EMPTY, ...p, margin: effectiveMargin(p), images: productImages(p) });
     setError('');
     setOpen(true);
-  };
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(`products/${store.id}`, file);
-      setForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUploading(false);
-    }
   };
 
   const save = async () => {
@@ -97,7 +84,7 @@ export default function SellerListings({ storeOverride }) {
       unitType: form.unitType, price: Number(form.price) || 0, margin: Number(form.margin) || 0,
       weightPerUnitKg: form.unitType === 'weight' ? 0 : Number(form.weightPerUnitKg) || 0,
       quantity: Number(form.quantity) || 0,
-      unit: form.unit, imageUrl: form.imageUrl, status: form.status, warning: form.warning,
+      unit: form.unit, ...imageFields(form.images), status: form.status, warning: form.warning,
     };
     try {
       if (editing) await updateProduct(editing.id, payload);
@@ -257,13 +244,13 @@ export default function SellerListings({ storeOverride }) {
               value={form.warning}
               onChange={(e) => setForm({ ...form, warning: e.target.value })}
             />
-            <Button component="label" variant="outlined" disabled={uploading}>
-              {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
-              <input hidden type="file" accept="image/*" onChange={handleFile} />
-            </Button>
-            {form.imageUrl && (
-              <Box component="img" src={form.imageUrl} sx={{ width: 120, borderRadius: 1 }} />
-            )}
+            <ProductImagesField
+              images={form.images}
+              onChange={(images) => setForm((f) => ({ ...f, images }))}
+              storagePath={`products/${store.id}`}
+              onUploadingChange={setUploading}
+              onError={setError}
+            />
             {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         </DialogContent>

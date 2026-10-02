@@ -17,6 +17,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import { formatINR, customerPrice, effectiveMargin } from '../lib/calculations';
 import { placeholderImage } from '../lib/placeholder';
+import { productImages } from '../lib/productImages';
 import { PRODUCT_STATUS, unitTypeShortLabel } from '../lib/constants';
 
 const VIEW_KEY = 'staffProductView';
@@ -51,6 +52,7 @@ export default function StaffProductGrid({ products, onEdit, onDelete, storeName
       {products.map((p) => {
         const unlisted = p.status !== PRODUCT_STATUS.ACTIVE;
         const soldOut = !p.quantity;
+        const photoCount = productImages(p).length;
         return (
           <Grid item xs={6} sm={4} md={3} lg={2.4} key={p.id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', opacity: unlisted ? 0.7 : 1 }}>
@@ -67,6 +69,7 @@ export default function StaffProductGrid({ products, onEdit, onDelete, storeName
                     {unlisted && <Chip size="small" label="Unlisted" color="error" />}
                     {soldOut && <Chip size="small" label="Sold out" sx={{ bgcolor: 'rgba(255,255,255,0.9)' }} />}
                     {!p.imageUrl && <Chip size="small" label="No image" sx={{ bgcolor: 'rgba(255,255,255,0.9)' }} />}
+                    {photoCount > 1 && <Chip size="small" label={`${photoCount} photos`} sx={{ bgcolor: 'rgba(255,255,255,0.9)' }} />}
                   </Box>
                 </Box>
                 <CardContent sx={{ flex: 1, pb: 1 }}>

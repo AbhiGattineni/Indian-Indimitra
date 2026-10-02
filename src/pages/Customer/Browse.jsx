@@ -4,9 +4,11 @@ import {
   MenuItem, CircularProgress, Rating, Checkbox, ListItemText,
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import { listCategoriesByStore, listProductsByStore, listReviewsByStore } from '../../firebase/db';
 import { formatINR, customerPrice } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
+import { productImages } from '../../lib/productImages';
 import { PRODUCT_STATUS } from '../../lib/constants';
 import { ratingsByProduct } from '../../lib/reviews';
 import { useStoreSelection } from '../../store/useStoreSelection';
@@ -142,17 +144,30 @@ export default function Browse() {
             <Grid item xs={6} sm={4} md={3} key={p.id}>
               <Card>
                 <CardActionArea onClick={() => setSelectedProduct(p)}>
-                  <CardMedia
-                    component="img"
-                    image={p.imageUrl || placeholderImage(p.name)}
-                    alt={p.name}
-                    sx={{
-                      width: '100%',
-                      aspectRatio: '4 / 3',
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
-                  />
+                  <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      image={p.imageUrl || placeholderImage(p.name)}
+                      alt={p.name}
+                      sx={{
+                        width: '100%',
+                        aspectRatio: '4 / 3',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    {productImages(p).length > 1 && (
+                      <Box
+                        sx={{
+                          position: 'absolute', bottom: 6, right: 6, display: 'flex', alignItems: 'center', gap: 0.5,
+                          px: 0.75, py: 0.25, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
+                        }}
+                      >
+                        <PhotoLibraryIcon sx={{ fontSize: 14 }} />
+                        <Typography variant="caption" sx={{ lineHeight: 1 }}>{productImages(p).length}</Typography>
+                      </Box>
+                    )}
+                  </Box>
                   <CardContent>
                     <Typography noWrap fontWeight={600}>
                       {p.name}
