@@ -8,7 +8,6 @@ import {
   ToggleButton, ToggleButtonGroup, TextField, Paper, Badge, Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -22,6 +21,8 @@ import {
 import { piecesForGrams } from '../lib/pieceWeights';
 import { placeholderImage } from '../lib/placeholder';
 import ProductReviews from './ProductReviews';
+import ProductImageGallery from './ProductImageGallery';
+import { productImages as getProductImages } from '../lib/productImages';
 
 const WEIGHT_OPTIONS = [
   { amount: 250, label: '250 g' },
@@ -39,13 +40,12 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const removeItem = useCartStore((s) => s.removeItem);
   const cartItems = useCartStore((s) => s.items);
   const [qty, setQty] = useState(1);
-  const [imageOpen, setImageOpen] = useState(false);
   const [amount, setAmount] = useState(1000);
   const [instructions, setInstructions] = useState('');
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
-    if (open) { setQty(1); setAmount(1000); setInstructions(''); setImageOpen(false); }
+    if (open) { setQty(1); setAmount(1000); setInstructions(''); }
   }, [open, product?.id]);
 
   if (!product) return null;
@@ -55,7 +55,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
   const tierOptions = unitType === 'volume' ? VOLUME_OPTIONS : WEIGHT_OPTIONS;
   const outOfStock = !product.quantity;
   const displayPrice = customerPrice(product);
-  const productImage = product.imageUrl || placeholderImage(product.name);
+  const productImages = getProductImages(product).length ? getProductImages(product) : [placeholderImage(product.name)];
   const unitPrice = isPiece ? displayPrice : displayPrice * (amount / 1000); // price for the selected tier
   const lineTotal = unitPrice * qty;
 
@@ -91,29 +91,7 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
         }}
       >
         <Box sx={{ position: 'relative' }}>
-          {/* Whole photo, never cropped (contain, letterboxed on grey);
-              tapping it opens the full-screen viewer below. */}
-          <Box
-            component="img"
-            src={productImage}
-            alt={product.name}
-            onClick={() => setImageOpen(true)}
-            sx={{
-              width: '100%', height: { xs: 260, sm: 340 }, objectFit: 'contain',
-              bgcolor: 'grey.100', display: 'block', cursor: 'zoom-in',
-            }}
-          />
-          <IconButton
-            onClick={() => setImageOpen(true)}
-            aria-label="View full image"
-            size="small"
-            sx={{
-              position: 'absolute', bottom: 8, right: 8,
-              bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
-            }}
-          >
-            <ZoomOutMapIcon fontSize="small" />
-          </IconButton>
+          <ProductImageGallery images={productImages} alt={product.name} />
           <IconButton
             onClick={onClose}
             sx={{
@@ -286,39 +264,6 @@ export default function ProductModal({ open, product, storeId, storeName, onClos
             {outOfStock ? 'Unavailable' : 'Add to Cart'}
           </Button>
         </Box>
-      </Dialog>
-
-      {/* Full-screen image viewer: tap anywhere (or the X) to close. */}
-      <Dialog
-        open={open && imageOpen}
-        onClose={() => setImageOpen(false)}
-        fullScreen
-        PaperProps={{ sx: { bgcolor: '#000' } }}
-      >
-        <Box
-          onClick={() => setImageOpen(false)}
-          sx={{
-            width: '100%', height: '100%', p: { xs: 1, sm: 3 }, boxSizing: 'border-box',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
-          }}
-        >
-          <Box
-            component="img"
-            src={productImage}
-            alt={product.name}
-            sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
-          />
-        </Box>
-        <IconButton
-          onClick={() => setImageOpen(false)}
-          aria-label="Close image"
-          sx={{
-            position: 'fixed', top: 16, right: 16,
-            bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
       </Dialog>
 
       <Snackbar

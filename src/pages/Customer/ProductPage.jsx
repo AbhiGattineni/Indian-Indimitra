@@ -10,6 +10,8 @@ import { getStore } from '../../firebase/db';
 import { useCartStore } from '../../store/useCartStore';
 import { formatINR, customerPrice } from '../../lib/calculations';
 import { placeholderImage } from '../../lib/placeholder';
+import ProductImageGallery from '../../components/ProductImageGallery';
+import { productImages } from '../../lib/productImages';
 import AddToCartDialog from '../../components/AddToCartDialog';
 
 export default function ProductPage() {
@@ -52,11 +54,11 @@ export default function ProductPage() {
     <Box>
       <Grid container spacing={4}>
         <Grid item xs={12} md={5}>
-          <Box
-            component="img"
-            src={product.imageUrl || placeholderImage(product.name)}
+          <ProductImageGallery
+            images={productImages(product).length ? productImages(product) : [placeholderImage(product.name)]}
             alt={product.name}
-            sx={{ width: '100%', borderRadius: 2 }}
+            height={{ xs: 300, md: 420 }}
+            rounded
           />
         </Grid>
         <Grid item xs={12} md={7}>

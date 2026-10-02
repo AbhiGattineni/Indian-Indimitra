@@ -15,7 +15,6 @@ import {
   listStores, updateStore, createStore, getUserByEmail, setUserRole, listUsersByRole,
   listAllProducts, listAllCategories, createProduct, updateProduct, deleteProduct,
 } from '../../firebase/db';
-import { uploadImage } from '../../firebase/storage';
 import { formatINR, effectiveMargin } from '../../lib/calculations';
 import {
   PRODUCT_STATUS, STORE_STATUS, ROLES, UNIT_TYPES, unitTypeShortLabel,
@@ -23,6 +22,8 @@ import {
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 import StoreBannersEditor from '../../components/StoreBannersEditor';
+import ProductImagesField from '../../components/ProductImagesField';
+import { productImages, imageFields } from '../../lib/productImages';
 import StaffProductGrid, { ProductViewToggle, useProductViewMode } from '../../components/StaffProductGrid';
 
 export default function Catalog() {
@@ -356,14 +357,14 @@ function StoresTab({ stores, onSaved }) {
 
 const EMPTY_PRODUCT = {
   name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
-  weightPerUnitKg: '', quantity: 0, unit: 'unit', imageUrl: '',
+  weightPerUnitKg: '', quantity: 0, unit: 'unit', images: [],
   status: PRODUCT_STATUS.ACTIVE, warning: '',
 };
 
 const EMPTY_NEW_PRODUCT = {
   storeId: '', name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
   weightPerUnitKg: '', quantity: 0, unit: 'unit',
-  status: PRODUCT_STATUS.ACTIVE, warning: '', imageUrl: '',
+  status: PRODUCT_STATUS.ACTIVE, warning: '', images: [],
 };
 
 function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
@@ -383,7 +384,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
 
   const openEdit = (p) => {
     setEditing(p);
-    setForm({ ...EMPTY_PRODUCT, ...p, margin: effectiveMargin(p) });
+    setForm({ ...EMPTY_PRODUCT, ...p, margin: effectiveMargin(p), images: productImages(p) });
     setError('');
     setOpen(true);
   };
@@ -428,7 +429,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
         weightPerUnitKg: addForm.unitType === 'weight' ? 0 : Number(addForm.weightPerUnitKg) || 0,
         quantity: Number(addForm.quantity) || 0,
         unit: addForm.unit,
-        imageUrl: addForm.imageUrl || '',
+        ...imageFields(addForm.images),
         status: addForm.status,
         warning: addForm.warning,
       });
@@ -438,37 +439,6 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
       setAddError(e.message);
     } finally {
       setAddSaving(false);
-    }
-  };
-
-  // Image for a product being added: uploads into the chosen store's folder,
-  // so the store has to be picked first.
-  const handleAddFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !addForm.storeId) return;
-    setAddUploading(true);
-    try {
-      const url = await uploadImage(`products/${addForm.storeId}`, file);
-      setAddForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) {
-      setAddError(err.message);
-    } finally {
-      setAddUploading(false);
-    }
-  };
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(`products/${editing.storeId}`, file);
-      setForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -484,7 +454,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
         unitType: form.unitType, price: Number(form.price) || 0, margin: Number(form.margin) || 0,
         weightPerUnitKg: form.unitType === 'weight' ? 0 : Number(form.weightPerUnitKg) || 0,
         quantity: Number(form.quantity) || 0,
-        unit: form.unit, imageUrl: form.imageUrl, status: form.status, warning: form.warning,
+        unit: form.unit, ...imageFields(form.images), status: form.status, warning: form.warning,
       });
       setOpen(false);
       onSaved();
@@ -637,19 +607,21 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
               value={form.warning}
               onChange={(e) => setForm({ ...form, warning: e.target.value })}
             />
-            <Button component="label" variant="outlined" disabled={uploading}>
-              {uploading ? 'Uploading…' : form.imageUrl ? 'Change image' : 'Upload image'}
-              <input hidden type="file" accept="image/*" onChange={handleFile} />
-            </Button>
-            {form.imageUrl && (
-              <Box component="img" src={form.imageUrl} sx={{ width: 120, borderRadius: 1 }} />
+            {editing && (
+              <ProductImagesField
+                images={form.images}
+                onChange={(images) => setForm((f) => ({ ...f, images }))}
+                storagePath={`products/${editing.storeId}`}
+                onUploadingChange={setUploading}
+                onError={setError}
+              />
             )}
             {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={save}>Save</Button>
+          <Button variant="contained" onClick={save} disabled={uploading}>Save</Button>
         </DialogActions>
       </Dialog>
 
@@ -716,16 +688,14 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
               value={addForm.warning}
               onChange={(e) => setAddForm({ ...addForm, warning: e.target.value })}
             />
-            <Button component="label" variant="outlined" disabled={!addForm.storeId || addUploading}>
-              {addUploading ? 'Uploading…' : addForm.imageUrl ? 'Change image' : 'Upload image'}
-              <input hidden type="file" accept="image/*" onChange={handleAddFile} />
-            </Button>
-            {!addForm.storeId && (
-              <Typography variant="caption" color="text.secondary">Pick the store first to upload an image.</Typography>
-            )}
-            {addForm.imageUrl && (
-              <Box component="img" src={addForm.imageUrl} sx={{ width: 120, borderRadius: 1 }} />
-            )}
+            <ProductImagesField
+              images={addForm.images}
+              onChange={(images) => setAddForm((f) => ({ ...f, images }))}
+              storagePath={addForm.storeId ? `products/${addForm.storeId}` : null}
+              disabledHint="Pick the store first to upload photos."
+              onUploadingChange={setAddUploading}
+              onError={setAddError}
+            />
             {addError && <Alert severity="error">{addError}</Alert>}
           </Stack>
         </DialogContent>
