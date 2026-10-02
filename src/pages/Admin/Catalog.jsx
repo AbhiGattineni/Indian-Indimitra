@@ -23,6 +23,7 @@ import {
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 import StoreBannersEditor from '../../components/StoreBannersEditor';
+import StaffProductGrid, { ProductViewToggle, useProductViewMode } from '../../components/StaffProductGrid';
 
 export default function Catalog() {
   const [tab, setTab] = useState('stores');
@@ -362,7 +363,7 @@ const EMPTY_PRODUCT = {
 const EMPTY_NEW_PRODUCT = {
   storeId: '', name: '', description: '', categoryId: '', unitType: 'weight', price: 0, margin: 0,
   weightPerUnitKg: '', quantity: 0, unit: 'unit',
-  status: PRODUCT_STATUS.ACTIVE, warning: '',
+  status: PRODUCT_STATUS.ACTIVE, warning: '', imageUrl: '',
 };
 
 function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
@@ -373,6 +374,8 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [storeFilter, setStoreFilter] = useState('all');
+  const [view, setView] = useProductViewMode();
+  const [addUploading, setAddUploading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_NEW_PRODUCT);
   const [addError, setAddError] = useState('');
@@ -425,7 +428,7 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
         weightPerUnitKg: addForm.unitType === 'weight' ? 0 : Number(addForm.weightPerUnitKg) || 0,
         quantity: Number(addForm.quantity) || 0,
         unit: addForm.unit,
-        imageUrl: '',
+        imageUrl: addForm.imageUrl || '',
         status: addForm.status,
         warning: addForm.warning,
       });
@@ -435,6 +438,23 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
       setAddError(e.message);
     } finally {
       setAddSaving(false);
+    }
+  };
+
+  // Image for a product being added: uploads into the chosen store's folder,
+  // so the store has to be picked first.
+  const handleAddFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !addForm.storeId) return;
+    setAddUploading(true);
+    try {
+      const url = await uploadImage(`products/${addForm.storeId}`, file);
+      setAddForm((f) => ({ ...f, imageUrl: url }));
+    } catch (err) {
+      setAddError(err.message);
+    } finally {
+      setAddUploading(false);
     }
   };
 
@@ -506,50 +526,59 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
             {stores.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
           </TextField>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>Add product</Button>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <ProductViewToggle value={view} onChange={setView} />
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>Add product</Button>
+        </Box>
       </Box>
 
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Image</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Store</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="right">Stock</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>
-                  {p.imageUrl && (
-                    <Box component="img" src={p.imageUrl} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 1 }} />
-                  )}
-                </TableCell>
-                <TableCell>{p.name}</TableCell>
-                <TableCell>{storeNameById[p.storeId] || p.storeId}</TableCell>
-                <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
-                <TableCell align="right">{p.quantity} {p.unit}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={p.status}
-                    color={p.status === PRODUCT_STATUS.ACTIVE ? 'success' : 'error'}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
-                  <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
-                </TableCell>
+      {view === 'grid' ? (
+        <StaffProductGrid
+          products={filtered} onEdit={openEdit} onDelete={remove} storeNameById={storeNameById}
+        />
+      ) : (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Image</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Store</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="right">Stock</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filtered.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    {p.imageUrl && (
+                      <Box component="img" src={p.imageUrl} sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 1 }} />
+                    )}
+                  </TableCell>
+                  <TableCell>{p.name}</TableCell>
+                  <TableCell>{storeNameById[p.storeId] || p.storeId}</TableCell>
+                  <TableCell align="right">{formatINR(p.price)}/{unitTypeShortLabel(p.unitType)}</TableCell>
+                  <TableCell align="right">{p.quantity} {p.unit}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={p.status}
+                      color={p.status === PRODUCT_STATUS.ACTIVE ? 'success' : 'error'}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton onClick={() => openEdit(p)}><EditIcon /></IconButton>
+                    <IconButton onClick={() => remove(p.id)}><DeleteIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit product</DialogTitle>
@@ -687,15 +716,22 @@ function ProductsTab({ products, categories, stores, storeNameById, onSaved }) {
               value={addForm.warning}
               onChange={(e) => setAddForm({ ...addForm, warning: e.target.value })}
             />
-            <Typography variant="caption" color="text.secondary">
-              Add an image afterward by editing the product.
-            </Typography>
+            <Button component="label" variant="outlined" disabled={!addForm.storeId || addUploading}>
+              {addUploading ? 'Uploading…' : addForm.imageUrl ? 'Change image' : 'Upload image'}
+              <input hidden type="file" accept="image/*" onChange={handleAddFile} />
+            </Button>
+            {!addForm.storeId && (
+              <Typography variant="caption" color="text.secondary">Pick the store first to upload an image.</Typography>
+            )}
+            {addForm.imageUrl && (
+              <Box component="img" src={addForm.imageUrl} sx={{ width: 120, borderRadius: 1 }} />
+            )}
             {addError && <Alert severity="error">{addError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={createProductDirect} disabled={addSaving}>
+          <Button variant="contained" onClick={createProductDirect} disabled={addSaving || addUploading}>
             {addSaving ? 'Adding…' : 'Add product'}
           </Button>
         </DialogActions>
