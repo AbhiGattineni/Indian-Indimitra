@@ -9,8 +9,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { uploadImage } from '../firebase/storage';
+import { compressImage } from '../lib/imageCompress';
 
-const MAX_FILE_MB = 5;
+// Applies after compression (which brings normal phone photos well under
+// this); only something unusually large that couldn't be shrunk is refused.
+const MAX_FILE_MB = 15;
 export const MAX_PRODUCT_IMAGES = 10;
 
 // `storagePath` is where uploads go (e.g. products/{storeId}); null disables
@@ -26,18 +29,25 @@ export default function ProductImagesField({ images, onChange, storagePath, disa
     if (!files.length || !storagePath) return;
     const room = MAX_PRODUCT_IMAGES - images.length;
     if (room <= 0) { onError?.(`Up to ${MAX_PRODUCT_IMAGES} photos per product.`); return; }
-    const tooBig = files.filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
-    if (tooBig.length) { onError?.(`${tooBig.map((f) => f.name).join(', ')}: over ${MAX_FILE_MB} MB.`); return; }
     const batch = files.slice(0, room);
-    if (batch.length < files.length) onError?.(`Only the first ${room} photo(s) were added — up to ${MAX_PRODUCT_IMAGES} per product.`);
+    const problems = [];
+    if (batch.length < files.length) problems.push(`only the first ${room} were added — up to ${MAX_PRODUCT_IMAGES} per product`);
     setBusy(true);
     try {
-      const urls = await Promise.all(batch.map((f) => uploadImage(storagePath, f)));
-      onChange([...images, ...urls]);
-    } catch (err) {
-      onError?.(err.message);
+      // Upload each photo on its own so one failure doesn't throw away the
+      // others that went through; keep the picked order.
+      const results = await Promise.allSettled(batch.map(async (f) => {
+        const small = await compressImage(f);
+        if (small.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`${f.name} is over ${MAX_FILE_MB} MB`);
+        return uploadImage(storagePath, small);
+      }));
+      const urls = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+      const failed = results.filter((r) => r.status === 'rejected');
+      if (failed.length) problems.push(`${failed.length} photo(s) failed to upload (${failed[0].reason?.message || 'error'})`);
+      if (urls.length) onChange([...images, ...urls.filter((u) => !images.includes(u))]);
     } finally {
       setBusy(false);
+      onError?.(problems.length ? `Photos: ${problems.join('; ')}.` : '');
     }
   };
 
@@ -68,7 +78,7 @@ export default function ProductImagesField({ images, onChange, storagePath, disa
       {images.length > 0 && (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 1, mt: 1.5 }}>
           {images.map((url, i) => (
-            <Box key={url} sx={{ position: 'relative', border: '1px solid', borderColor: i === 0 ? 'primary.main' : 'divider', borderRadius: 1.5, overflow: 'hidden' }}>
+            <Box key={`${i}-${url}`} sx={{ position: 'relative', border: '1px solid', borderColor: i === 0 ? 'primary.main' : 'divider', borderRadius: 1.5, overflow: 'hidden' }}>
               <Box component="img" src={url} alt={`Photo ${i + 1}`} sx={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
               {i === 0 && (
                 <Typography variant="caption" sx={{ position: 'absolute', top: 4, left: 4, px: 0.75, borderRadius: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 600 }}>

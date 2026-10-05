@@ -79,7 +79,7 @@ export default function SellerListings({ storeOverride }) {
       return;
     }
     const payload = {
-      storeId: store.id, ownerUid: user.uid,
+      storeId: store.id,
       name: form.name, description: form.description, categoryId: form.categoryId,
       unitType: form.unitType, price: Number(form.price) || 0, margin: Number(form.margin) || 0,
       weightPerUnitKg: form.unitType === 'weight' ? 0 : Number(form.weightPerUnitKg) || 0,
@@ -87,8 +87,10 @@ export default function SellerListings({ storeOverride }) {
       unit: form.unit, ...imageFields(form.images), status: form.status, warning: form.warning,
     };
     try {
+      // ownerUid is the store owner's, set once on create -- an FDM or admin
+      // editing through this screen must not take over the product.
       if (editing) await updateProduct(editing.id, payload);
-      else await createProduct(payload);
+      else await createProduct({ ...payload, ownerUid: store.ownerUid || user.uid });
       setOpen(false);
       load(store);
     } catch (e) {

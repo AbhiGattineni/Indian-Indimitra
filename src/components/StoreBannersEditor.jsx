@@ -13,8 +13,9 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { updateStore } from '../firebase/db';
 import { uploadImage } from '../firebase/storage';
+import { compressImage } from '../lib/imageCompress';
 
-const MAX_FILE_MB = 5;
+const MAX_FILE_MB = 15; // after compression
 
 export default function StoreBannersEditor({ store, onSaved }) {
   const [images, setImages] = useState(store.images || []);
@@ -43,13 +44,12 @@ export default function StoreBannersEditor({ store, onSaved }) {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (files.length === 0) return;
-    const tooBig = files.filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
-    if (tooBig.length) {
-      setError(`${tooBig.map((f) => f.name).join(', ')} ${tooBig.length > 1 ? 'are' : 'is'} over ${MAX_FILE_MB} MB.`);
-      return;
-    }
     run(async () => {
-      const urls = await Promise.all(files.map((f) => uploadImage(`stores/${store.id}`, f)));
+      const urls = await Promise.all(files.map(async (f) => {
+        const small = await compressImage(f, { maxDim: 2400 });
+        if (small.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`${f.name} is over ${MAX_FILE_MB} MB.`);
+        return uploadImage(`stores/${store.id}`, small);
+      }));
       await persist([...images, ...urls]);
     });
   };
