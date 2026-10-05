@@ -179,8 +179,14 @@ service cloud.firestore {
     // ops visibility only (admin + the order's store's assigned FDM), same
     // as the status audit log; never the store owner.
     match /orderFeedback/{orderId} {
+      // `resource == null` branch: the review dialog reads the order's
+      // feedback before the customer's first review, when the doc doesn't
+      // exist yet -- resource.data would error there and deny the read,
+      // leaving the dialog stuck loading. Only the order's own customer.
       allow read: if isSignedIn() && (
-        resource.data.customerUid == request.auth.uid
+        (resource == null
+          && get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid)
+        || resource.data.customerUid == request.auth.uid
         || isAdmin()
         || isAssignedFdm(get(/databases/$(database)/documents/orders/$(orderId)).data.storeId)
       );
