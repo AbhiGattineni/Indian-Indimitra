@@ -27,9 +27,13 @@ export default function ReviewOrderDialog({ order, onClose, onSaved }) {
     setReady(false);
     setError('');
     setShowMissing(false);
+    // Each read falls back to "no earlier answer" if it fails, so the form
+    // always appears -- a failed read used to leave the dialog blank with
+    // Submit disabled.
+    const safe = (p) => p.catch((e) => { console.warn('Review prefill failed', e); return null; });
     Promise.all([
-      Promise.all(items.map((it) => getReview(reviewId(it.productId, user.uid)))),
-      getOrderFeedback(order.id),
+      Promise.all(items.map((it) => safe(getReview(reviewId(it.productId, user.uid))))),
+      safe(getOrderFeedback(order.id)),
     ]).then(([itemReviews, feedback]) => {
       const initial = {};
       items.forEach((it, i) => {
