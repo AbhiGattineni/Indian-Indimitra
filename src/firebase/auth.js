@@ -3,6 +3,7 @@
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   signOut as fbSignOut,
   updateProfile,
@@ -48,17 +49,25 @@ export async function signInWithGoogle() {
   return cred.user;
 }
 
+// Phone keyboards often capitalise the first letter or add a trailing space.
+const cleanEmail = (email) => (email || '').trim().toLowerCase();
+
 export async function signInWithEmail(email, password) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const cred = await signInWithEmailAndPassword(auth, cleanEmail(email), password);
   await ensureUserProfile(cred.user);
   return cred.user;
 }
 
 export async function registerWithEmail(email, password, displayName) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const cred = await createUserWithEmailAndPassword(auth, cleanEmail(email), password);
   if (displayName) await updateProfile(cred.user, { displayName });
   await ensureUserProfile(cred.user);
   return cred.user;
+}
+
+// Also how someone who signed up with Google sets a password for email login.
+export function resetPassword(email) {
+  return sendPasswordResetEmail(auth, cleanEmail(email));
 }
 
 export function signOut() {
