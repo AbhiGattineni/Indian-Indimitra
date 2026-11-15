@@ -1,6 +1,7 @@
 // FDM runs one assigned business end to end: same Orders + Listings tools the
 // seller uses, but pointed at the assigned store via storeOverride.
 import { useEffect, useState } from 'react';
+import { storePath } from '../../lib/storeLinks';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Tabs, Tab, Button, CircularProgress, Chip, Divider,
@@ -73,7 +74,7 @@ export default function FdmManageStore() {
         />
         <Button
           variant="outlined" size="small" startIcon={<OpenInNewIcon />}
-          onClick={() => { setStore(store); navigate('/delivery'); }}
+          onClick={() => { setStore(store); navigate(storePath(store)); }}
         >
           Open storefront
         </Button>

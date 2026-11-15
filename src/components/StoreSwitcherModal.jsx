@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStoreSelection } from '../store/useStoreSelection';
 import { useAuthStore } from '../store/useAuthStore';
 import { ROLES } from '../lib/constants';
+import { storePath } from '../lib/storeLinks';
 
 // `mandatory`: when true, the customer has no store selected yet and must
 // pick one to proceed -- no close button, and backdrop/Escape can't dismiss
@@ -25,7 +26,7 @@ export default function StoreSwitcherModal({ open, onClose, mandatory = false })
   const choose = (store) => {
     setStore(store);
     onClose();
-    navigate('/delivery');
+    navigate(storePath(store));
   };
 
   const handleClose = (_event, reason) => {

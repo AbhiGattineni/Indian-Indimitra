@@ -41,9 +41,9 @@ export default function Layout({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
 
-  // The store switcher only makes sense once you're actually shopping --
-  // hidden on the landing gateway and the (store-unrelated) services page.
-  const showStoreSwitcher = location.pathname !== '/' && location.pathname !== '/services';
+  // The landing page is now the store picker itself, so the switcher pill
+  // shows everywhere.
+  const showStoreSwitcher = true;
 
   // Admin and FDM dashboards are a whole-business overview (wide tables,
   // charts), so they use the full screen width instead of the capped
