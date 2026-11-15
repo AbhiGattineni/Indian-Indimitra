@@ -1,6 +1,8 @@
 // FDM runs one assigned business end to end: same Orders + Listings tools the
 // seller uses, but pointed at the assigned store via storeOverride.
 import { useEffect, useState } from 'react';
+import { storePath, storeUrl } from '../../lib/storeLinks';
+import LinkIcon from '@mui/icons-material/Link';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Tabs, Tab, Button, CircularProgress, Chip, Divider,
@@ -28,6 +30,10 @@ export default function FdmManageStore() {
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(storeUrl(store)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { window.prompt('Store link', storeUrl(store)); }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -73,9 +79,12 @@ export default function FdmManageStore() {
         />
         <Button
           variant="outlined" size="small" startIcon={<OpenInNewIcon />}
-          onClick={() => { setStore(store); navigate('/delivery'); }}
+          onClick={() => { setStore(store); navigate(storePath(store)); }}
         >
           Open storefront
+        </Button>
+        <Button variant="outlined" size="small" startIcon={<LinkIcon />} onClick={copyLink} color={copied ? 'success' : 'primary'}>
+          {copied ? 'Link copied' : 'Copy store link'}
         </Button>
       </Box>
       {store.pickupAddress && (

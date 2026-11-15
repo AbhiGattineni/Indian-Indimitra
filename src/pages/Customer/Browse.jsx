@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Box, TextField,
-  MenuItem, CircularProgress, Rating, Checkbox, ListItemText,
+  MenuItem, CircularProgress, Rating, Checkbox, ListItemText, Alert,
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
@@ -12,12 +13,22 @@ import { productImages } from '../../lib/productImages';
 import { PRODUCT_STATUS } from '../../lib/constants';
 import { ratingsByProduct } from '../../lib/reviews';
 import { useStoreSelection } from '../../store/useStoreSelection';
+import { useAuthStore } from '../../store/useAuthStore';
+import { ROLES } from '../../lib/constants';
+import { storePath, findStoreByKey } from '../../lib/storeLinks';
 import StoreImageSlider from '../../components/StoreImageSlider';
 import ProductModal from '../../components/ProductModal';
 
 export default function Browse() {
-  const { selectedStore, ensureStores, loaded, openSwitcher } = useStoreSelection();
-  const store = selectedStore;
+  const {
+    selectedStore, stores, ensureStores, loaded, openSwitcher, switcherOpen, setStore,
+  } = useStoreSelection();
+  const { profile } = useAuthStore();
+  const { storeId } = useParams(); // set on /store/:storeId, absent on '/'
+  const navigate = useNavigate();
+  const [linkNotFound, setLinkNotFound] = useState(false);
+  const linked = storeId ? findStoreByKey(stores, storeId) : null;
+  const store = storeId && selectedStore?.id !== linked?.id ? null : selectedStore;
   const [products, setProducts] = useState([]);
   const [ratings, setRatings] = useState({});
   const [categories, setCategories] = useState([]);
@@ -30,18 +41,37 @@ export default function Browse() {
 
   useEffect(() => { ensureStores(); }, [ensureStores]);
 
-  // Show the store picker once per visit to this page, so a customer always
-  // sees the full list of businesses (not just whichever one they're already
-  // in) -- mandatory (no close button) only when nothing is selected yet;
-  // otherwise dismissible, since they can just keep shopping their last
-  // store. Guarded by a ref so it doesn't reopen every time selectedStore
-  // changes (e.g. right after they pick one from it).
+  // Two ways in:
+  // - /store/:storeId (a store's shareable link, or picked from the picker):
+  //   open that store directly, no picker. Internal/testing stores only open
+  //   for staff, same as the picker list.
+  // - '/' (landing): show the store picker right away -- mandatory when
+  //   nothing was chosen before, otherwise dismissible; once a store is set
+  //   and the picker is closed, move to that store's URL.
   useEffect(() => {
-    if (loaded && !promptedRef.current) {
+    if (!loaded || !storeId) return;
+    const isStaff = profile?.role === ROLES.ADMIN || profile?.role === ROLES.FDM;
+    const found = findStoreByKey(stores, storeId);
+    const target = found && (isStaff || !found.internal) ? found : null;
+    if (target) {
+      setLinkNotFound(false);
+      if (target.id !== selectedStore?.id) setStore(target);
+    } else {
+      setLinkNotFound(true);
+      openSwitcher(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, storeId, stores, profile?.role]);
+
+  useEffect(() => {
+    if (!loaded || storeId) return;
+    if (!promptedRef.current) {
       promptedRef.current = true;
       openSwitcher(!selectedStore);
+    } else if (!switcherOpen && selectedStore) {
+      navigate(storePath(selectedStore), { replace: true });
     }
-  }, [loaded, selectedStore, openSwitcher]);
+  }, [loaded, storeId, selectedStore, switcherOpen, openSwitcher, navigate]);
 
   // Categories are each store's own -- reload whenever the store changes,
   // and drop any category filter that no longer applies to it.
@@ -76,6 +106,11 @@ export default function Browse() {
 
   return (
     <Box>
+      {linkNotFound && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          That store link isn't available. Pick a store to continue.
+        </Alert>
+      )}
       {!loading && (
         <StoreImageSlider
           images={store?.images || []}

@@ -22,6 +22,10 @@ import {
 import PackagingChartEditor from '../../components/PackagingChartEditor';
 import StoreCategoriesEditor from '../../components/StoreCategoriesEditor';
 import StoreBannersEditor from '../../components/StoreBannersEditor';
+import {
+  slugify, storeSlug, storeUrl, slugProblem,
+} from '../../lib/storeLinks';
+import LinkIcon from '@mui/icons-material/Link';
 import ProductImagesField from '../../components/ProductImagesField';
 import { productImages, imageFields } from '../../lib/productImages';
 import StaffProductGrid, { ProductViewToggle, useProductViewMode } from '../../components/StaffProductGrid';
@@ -101,7 +105,7 @@ function FdmAssignSelect({ idPrefix, fdms, value, onChange }) {
 
 const EMPTY_STORE = {
   name: '', description: '', pickupAddress: '', shippingFlatFee: 0, freeShippingThreshold: 0,
-  approvalStatus: STORE_STATUS.PENDING, fdmUids: [],
+  approvalStatus: STORE_STATUS.PENDING, fdmUids: [], slug: '',
 };
 
 const EMPTY_NEW_STORE = {
@@ -127,7 +131,7 @@ function StoresTab({ stores, onSaved }) {
 
   const openEdit = (s) => {
     setEditing(s);
-    setForm({ ...EMPTY_STORE, ...s, fdmUids: s.fdmUids || [] });
+    setForm({ ...EMPTY_STORE, ...s, fdmUids: s.fdmUids || [], slug: storeSlug(s) });
     setError('');
     setOpen(true);
   };
@@ -152,7 +156,12 @@ function StoresTab({ stores, onSaved }) {
         setAddError(`No account found for ${email}. Ask them to sign in once first, then add the store.`);
         return;
       }
+      // Readable link from the name; add -2, -3... if another store has it.
+      const base = slugify(addForm.name) || 'store';
+      let slug = base;
+      for (let n = 2; stores.some((x) => storeSlug(x) === slug); n += 1) slug = `${base}-${n}`;
       await createStore(owner.id, {
+        slug,
         name: addForm.name,
         description: addForm.description,
         pickupAddress: addForm.pickupAddress,
@@ -172,9 +181,17 @@ function StoresTab({ stores, onSaved }) {
     }
   };
 
+  const [copiedId, setCopiedId] = useState(null);
+  const copyLink = async (s) => {
+    try { await navigator.clipboard.writeText(storeUrl(s)); setCopiedId(s.id); setTimeout(() => setCopiedId(null), 1500); } catch { window.prompt('Store link', storeUrl(s)); }
+  };
+
   const save = async () => {
+    const problem = slugProblem(form.slug, stores, editing.id);
+    if (problem) { setError(`Store link: ${problem}`); return; }
     try {
       await updateStore(editing.id, {
+        slug: form.slug,
         name: form.name,
         description: form.description,
         pickupAddress: form.pickupAddress,
@@ -218,6 +235,9 @@ function StoresTab({ stores, onSaved }) {
                 <TableCell><Chip size="small" label={s.approvalStatus} /></TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => openEdit(s)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => copyLink(s)} title={copiedId === s.id ? 'Copied!' : `Copy store link (/store/${storeSlug(s)})`} color={copiedId === s.id ? 'success' : 'default'}>
+                    <LinkIcon />
+                  </IconButton>
                   <IconButton onClick={() => setBannersStore(s)} title="Banners">
                     <ViewCarouselIcon />
                   </IconButton>
@@ -240,6 +260,14 @@ function StoresTab({ stores, onSaved }) {
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Name" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <TextField
+              label="Store link" value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-') })}
+              error={!!slugProblem(form.slug, stores, editing?.id)}
+              helperText={slugProblem(form.slug, stores, editing?.id)
+                || `${window.location.origin}/store/${form.slug} — changing it breaks links already shared.`}
+              InputProps={{ startAdornment: <InputAdornment position="start">/store/</InputAdornment> }}
+            />
             <TextField label="Description" multiline rows={2} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <TextField label="Pickup address" value={form.pickupAddress}

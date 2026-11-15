@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import ProtectedRoute from './routes/ProtectedRoute';
 import Layout from './components/Layout';
@@ -10,8 +10,10 @@ import { ROLES } from './lib/constants';
 import SignIn from './pages/Auth/SignIn';
 import NotAuthorized from './pages/Auth/NotAuthorized';
 // Landing gateway + NRI services
-import Gateway from './pages/Landing/Gateway';
-import Services from './pages/Services/Services';
+// Landing gateway (Delivery / Services) and the Services page are off for
+// now: '/' opens the store picker directly. Files kept for later.
+import { useStoreSelection } from './store/useStoreSelection';
+import { storePath } from './lib/storeLinks';
 // Customer
 import Browse from './pages/Customer/Browse';
 import ProductPage from './pages/Customer/ProductPage';
@@ -51,9 +53,10 @@ export default function App() {
     <Layout>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Gateway />} />
-        <Route path="/delivery" element={<Browse />} />
-        <Route path="/services" element={<Services />} />
+        <Route path="/" element={<Browse />} />
+        <Route path="/store/:storeId" element={<Browse />} />
+        <Route path="/delivery" element={<DeliveryRedirect />} />
+        <Route path="/services" element={<Navigate to="/" replace />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/not-authorized" element={<NotAuthorized />} />
@@ -160,4 +163,13 @@ export default function App() {
       </Routes>
     </Layout>
   );
+}
+
+// Old /delivery links (bookmarks, printed QR codes) go to the store last
+// shopped, if it's still known, otherwise to the store picker.
+function DeliveryRedirect() {
+  const { selectedStore, ensureStores, loaded } = useStoreSelection();
+  useEffect(() => { ensureStores(); }, [ensureStores]);
+  if (!loaded) return null;
+  return <Navigate to={storePath(selectedStore)} replace />;
 }

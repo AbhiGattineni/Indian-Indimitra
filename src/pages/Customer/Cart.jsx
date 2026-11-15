@@ -3,8 +3,10 @@ import {
   TextField, Button, Paper,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { storePath } from '../../lib/storeLinks';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
+import { useStoreSelection } from '../../store/useStoreSelection';
 import {
   formatINR, cartSubtotal, lineTotal, formatSaleAmount, itemUnitAmount,
 } from '../../lib/calculations';
@@ -12,6 +14,7 @@ import {
 export default function Cart() {
   const { items, storeName, setQty, removeItem } = useCartStore();
   const navigate = useNavigate();
+  const selectedStore = useStoreSelection((s) => s.selectedStore);
 
   if (items.length === 0) {
     return (
@@ -19,7 +22,7 @@ export default function Cart() {
         <Typography variant="h6" color="text.secondary">
           Your cart is empty.
         </Typography>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/delivery')}>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate(storePath(selectedStore))}>
           Browse products
         </Button>
       </Box>

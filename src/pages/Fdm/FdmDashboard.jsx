@@ -1,6 +1,7 @@
 // Forward Deployment Manager home: the businesses assigned to me, each with a
 // snapshot, a button to open its live storefront, and a button to manage it.
 import { useEffect, useState } from 'react';
+import { storePath } from '../../lib/storeLinks';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Grid, Card, CardContent, Button, Chip, CircularProgress, Divider, Alert,
@@ -75,7 +76,7 @@ export default function FdmDashboard() {
 
   const openStorefront = (store) => {
     setStore(store);
-    navigate('/delivery');
+    navigate(storePath(store));
   };
 
   if (loading) {
