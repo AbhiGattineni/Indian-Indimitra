@@ -15,7 +15,7 @@ import { ratingsByProduct } from '../../lib/reviews';
 import { useStoreSelection } from '../../store/useStoreSelection';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ROLES } from '../../lib/constants';
-import { storePath } from '../../lib/storeLinks';
+import { storePath, findStoreByKey } from '../../lib/storeLinks';
 import StoreImageSlider from '../../components/StoreImageSlider';
 import ProductModal from '../../components/ProductModal';
 
@@ -27,7 +27,8 @@ export default function Browse() {
   const { storeId } = useParams(); // set on /store/:storeId, absent on '/'
   const navigate = useNavigate();
   const [linkNotFound, setLinkNotFound] = useState(false);
-  const store = storeId && selectedStore?.id !== storeId ? null : selectedStore;
+  const linked = storeId ? findStoreByKey(stores, storeId) : null;
+  const store = storeId && selectedStore?.id !== linked?.id ? null : selectedStore;
   const [products, setProducts] = useState([]);
   const [ratings, setRatings] = useState({});
   const [categories, setCategories] = useState([]);
@@ -50,7 +51,8 @@ export default function Browse() {
   useEffect(() => {
     if (!loaded || !storeId) return;
     const isStaff = profile?.role === ROLES.ADMIN || profile?.role === ROLES.FDM;
-    const target = stores.find((s) => s.id === storeId && (isStaff || !s.internal));
+    const found = findStoreByKey(stores, storeId);
+    const target = found && (isStaff || !found.internal) ? found : null;
     if (target) {
       setLinkNotFound(false);
       if (target.id !== selectedStore?.id) setStore(target);
