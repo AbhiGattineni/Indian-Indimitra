@@ -91,3 +91,7 @@ export function paymentLabel(method) {
 }
 
 export const CURRENCY = 'INR';
+
+// Customer support on WhatsApp (digits only, with country code) -- used by
+// the floating support button on customer pages.
+export const SUPPORT_WHATSAPP = '919110736115';
