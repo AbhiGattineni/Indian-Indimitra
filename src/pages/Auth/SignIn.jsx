@@ -35,6 +35,9 @@ function authErrorMessage(error, onSignIn) {
   if (code === 'auth/network-request-failed') {
     return 'Network problem. Check your connection and try again.';
   }
+  if (code === 'app/suspicious-email') {
+    return 'This email address cannot be used here. Please use another email, or Continue with Google.';
+  }
   if (code === 'auth/operation-not-allowed') {
     return 'Email sign-in is turned off for this site right now. Please use Continue with Google. (auth/operation-not-allowed)';
   }

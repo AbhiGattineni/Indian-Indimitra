@@ -5,6 +5,18 @@ service cloud.firestore {
     // ---------- helpers ----------
     // Keep in sync with SUPER_ADMIN_EMAIL in src/lib/constants.js. The one
     // account allowed to self-assign "admin" — no manual console step needed.
+    // Bot sign-ups: Gmail ignores dots, so spammers make "new" addresses like
+    // x.at.ici.y.aso.1.74@gmail.com. 4+ dots in a Gmail address is treated
+    // as fake. Keep in sync with src/lib/emailSafety.js.
+    function isSuspiciousEmail() {
+      return isSignedIn() && 'email' in request.auth.token
+        && request.auth.token.email.lower().matches('^([^@.]+[.]){4,}[^@.]*@(gmail|googlemail)[.]com$');
+    }
+    // Email ownership proven (Google sign-ins always are; email/password
+    // accounts after clicking the verification link).
+    function hasVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
     function isSuperAdminEmail() {
       return isSignedIn() && request.auth.token.email == 'anddhensoftware@gmail.com';
     }
@@ -37,6 +49,7 @@ service cloud.firestore {
       // A self-created profile MUST be a customer — UNLESS it's the hardcoded
       // super-admin email, which may self-assign admin on first sign-in.
       allow create: if request.auth.uid == uid
+        && !isSuspiciousEmail()
         && (request.resource.data.role == 'customer'
             || (request.resource.data.role == 'admin' && isSuperAdminEmail()));
       // Self can edit own profile but NOT change their role — except the
@@ -107,7 +120,10 @@ service cloud.firestore {
     // ---------- orders ----------
     match /orders/{orderId} {
       // Customer creates their own order.
+      // Only with a verified, non-bot email -- stops fake sign-ups ordering.
       allow create: if isSignedIn()
+        && hasVerifiedEmail()
+        && !isSuspiciousEmail()
         && request.resource.data.customerUid == request.auth.uid;
       // Readable by the customer, the store owner, an assigned FDM, or an admin.
       allow read: if isSignedIn() && (

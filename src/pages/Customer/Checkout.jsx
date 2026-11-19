@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { resendVerificationEmail, refreshEmailVerified } from '../../firebase/auth';
 import ShippingRateDialog from '../../components/ShippingRateDialog';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import InfoTip from '../../components/InfoTip';
@@ -35,6 +36,19 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { items, storeId, storeName, clear } = useCartStore();
   const { user } = useAuthStore();
+  // Orders need a verified email (enforced in firestore.rules). Google
+  // sign-ins are already verified; email/password accounts verify via link.
+  const [emailVerified, setEmailVerified] = useState(!!user?.emailVerified);
+  const [verifyMsg, setVerifyMsg] = useState('');
+  useEffect(() => { setEmailVerified(!!user?.emailVerified); }, [user?.uid, user?.emailVerified]);
+  const resendVerify = async () => {
+    try { await resendVerificationEmail(); setVerifyMsg(`Sent. Check ${user?.email} (and spam), click the link, then tap "I've verified".`); } catch (e) { setVerifyMsg(e.code === 'auth/too-many-requests' ? 'Too many tries. Wait a few minutes.' : 'Could not send. Try again.'); }
+  };
+  const checkVerified = async () => {
+    const ok = await refreshEmailVerified();
+    setEmailVerified(ok);
+    setVerifyMsg(ok ? '' : "Not verified yet. Click the link in the email first, then try again.");
+  };
   const [store, setStore] = useState(null);
   const [config, setConfig] = useState(null);
   const [shippingRates, setShippingRates] = useState(null);
@@ -400,9 +414,19 @@ export default function Checkout() {
             <Chip color="secondary" label="Payment: Cash payment" />
           </Box>
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          {!emailVerified && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Please verify your email ({user?.email}) to place your order. We sent you a link when you signed up.
+              <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                <Button size="small" variant="outlined" onClick={resendVerify}>Resend email</Button>
+                <Button size="small" variant="contained" onClick={checkVerified}>I've verified</Button>
+              </Box>
+              {verifyMsg && <Box sx={{ mt: 1 }}>{verifyMsg}</Box>}
+            </Alert>
+          )}
           <Button
             fullWidth variant="contained" size="large" sx={{ mt: 2 }}
-            onClick={placeOrder} disabled={placing}
+            onClick={placeOrder} disabled={placing || !emailVerified}
           >
             Place order
           </Button>
