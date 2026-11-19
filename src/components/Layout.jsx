@@ -26,6 +26,7 @@ import { signOut } from '../firebase/auth';
 import { ROLES } from '../lib/constants';
 import { useCartSync } from '../hooks/useCartSync';
 import StoreSwitcherModal from './StoreSwitcherModal';
+import WhatsAppSupportButton from './WhatsAppSupportButton';
 
 export default function Layout({ children }) {
   const theme = useTheme();
@@ -49,6 +50,8 @@ export default function Layout({ children }) {
   // charts), so they use the full screen width instead of the capped
   // storefront container.
   const isDashboard = /^\/(admin|fdm)(\/|$)/.test(location.pathname);
+  // WhatsApp support is for customers: not on staff/seller pages.
+  const showSupport = !/^\/(admin|fdm|seller)(\/|$)/.test(location.pathname);
 
   useEffect(() => { ensureStores(); }, [ensureStores]);
 
@@ -256,9 +259,14 @@ export default function Layout({ children }) {
 
       <StoreSwitcherModal open={switcherOpen} onClose={closeSwitcher} mandatory={switcherMandatory} />
 
-      <Container maxWidth={isDashboard ? false : 'lg'} sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
+      <Container
+        maxWidth={isDashboard ? false : 'lg'}
+        // extra bottom room so the floating support button never covers the last row
+        sx={{ pt: { xs: 2, sm: 3 }, pb: showSupport ? 11 : { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}
+      >
         {children}
       </Container>
+      {showSupport && <WhatsAppSupportButton />}
     </Box>
   );
 }
