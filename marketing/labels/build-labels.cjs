@@ -9,6 +9,8 @@
 //   node marketing/labels/build-labels.cjs
 //   node marketing/labels/build-labels.cjs --brand "Raza Gift Shop" --brand-te "" --out raza
 // --brand-te "" drops the Telugu line; --out writes into marketing/labels/<out>/.
+//   node marketing/labels/build-labels.cjs --colors --out colors
+// --colors gives each of the 8 labels its own colour (panel + accents).
 // Needs Playwright (npm i -g playwright; NODE_PATH=$(npm root -g)).
 const fs = require('fs');
 const path = require('path');
@@ -20,6 +22,18 @@ const arg = (name, dflt) => {
 };
 const BRAND = arg('brand', null);
 const BRAND_TE = arg('brand-te', null);
+const COLORS = process.argv.includes('--colors');
+// [panel gradient from, panel gradient to, accent (brand/line art), rule]
+const PALETTE = [
+  ['#F9881F', '#FF6B6B', '#E8663D', '#F9881F'], // coral-orange (original)
+  ['#E8A100', '#D97706', '#B86E00', '#E8A100'], // marigold
+  ['#A12A3B', '#6E1423', '#9B2335', '#C9A227'], // temple maroon
+  ['#2F9E44', '#1B6E2E', '#2B8A3E', '#E0A100'], // leaf green
+  ['#4453B8', '#24306E', '#3B4BA8', '#E35D6A'], // indigo
+  ['#119DA4', '#0B6470', '#0B7D88', '#F2A541'], // peacock teal
+  ['#8A4AB0', '#55256F', '#7B3FA0', '#E9A23B'], // royal purple
+  ['#C0622F', '#7A3317', '#A0481F', '#E8A13A'], // terracotta
+];
 const OUT = arg('out', null) ? path.join(__dirname, arg('out')) : __dirname;
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -51,6 +65,19 @@ const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g
       })),
     };
   }, { brand: BRAND, brandTe: BRAND_TE });
+
+  if (COLORS) {
+    stickers.forEach((st, i) => {
+      const [from, to, accent, rule] = PALETTE[i % PALETTE.length];
+      st.html = st.html
+        .replace(/stop-color="#F9881F"/, `stop-color="${from}"`)
+        .replace(/stop-color="#FF6B6B"/, `stop-color="${to}"`)
+        .replace(/stroke="#B0553F"/, `stroke="${accent}"`)                      // line art
+        .replace(/(data-field="brand"[^>]*?)fill="#E8663D"|fill="#E8663D"([^>]*data-field="brand")/, (m) => m.replace('#E8663D', accent))
+        .replace(/rx="1.5" fill="#F9881F"/, `rx="1.5" fill="${rule}"`)            // divider rule
+        .replace(/fill="#B0553F">Straight from India/, `fill="${accent}">Straight from India`);
+    });
+  }
   const cellCount = COLS_MM.length * ROWS_MM.length;
   if (stickers.length !== cellCount) throw new Error(`expected ${cellCount} designs, got ${stickers.length}`);
 
